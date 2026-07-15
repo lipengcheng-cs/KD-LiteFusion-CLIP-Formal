@@ -1,0 +1,46 @@
+teacher_identity: mkan_refine_supplied_source_reproduction
+teacher_display_name: MKAN-Refine supplied-source reproduction teacher
+strict_b_spline_reproduction: false
+training_protocol: student_fixed_split_6090_995_950
+
+data:
+  csv_path: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/data/clean/task2_clean_consistent.csv
+  image_root: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/data/CrisisMMD_v2.0
+  expected_split_counts:
+    train: 6090
+    val: 995
+    test: 950
+  fixed_class_order:
+    - affected_individuals
+    - infrastructure_and_utility_damage
+    - rescue_volunteering_or_donation_effort
+    - other_relevant_information
+    - not_humanitarian
+  prohibit_resplit: true
+
+clip:
+  backend: openai_clip
+  architecture: ViT-L/14@336px
+  checkpoint: /home/lpc/.cache/clip/ViT-L-14-336px.pt
+  frozen: true
+  allow_network_download: false
+
+training:
+  seeds: [3407, 42, 2024]
+  epochs: 30
+  batch_size: 32
+  num_workers: 4
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  ema_decay: 0.999
+  class_weight: false
+  gradient_clip_norm: 1.0
+
+precompute:
+  batch_size: 4
+  num_workers: 4
+
+paths:
+  output_root: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/server_mkan_kd_formal
+  data_audit_report: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_kd_stage/data_contract_audit.json
+  legacy_feature_dir: /home/lpc/projects/KD-LiteFusion-CLIP_MKAN_REPRO/artifacts/clip_features

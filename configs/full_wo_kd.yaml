@@ -1,0 +1,30 @@
+data:
+  csv_path: data/clean/task2_clean_consistent.csv
+  image_root: data/CrisisMMD_v2.0
+  teacher_cache: null
+model:
+  clip_backend: openai
+  clip_model_name: ViT-L/14@336px
+  clip_model_path: /home/lpc/.cache/clip/ViT-L-14-336px.pt
+  clip_frozen: true
+  rank: 32
+  dropout: 0.2
+train:
+  output_dir: outputs/full_wo_kd
+  epochs: 10
+  batch_size: 8
+  num_workers: 4
+  lr: 0.0002
+  weight_decay: 0.01
+  disable_kd: true
+  save_best_by: weighted_f1
+loss:
+  use_class_weight: true
+  class_weight_method: inverse_freq
+  label_smoothing: 0.05
+kd_weights:
+  logits: 0.0
+  feature: 0.0
+  gate: 0.0
+  relation: 0.0
+  prototype: 0.0

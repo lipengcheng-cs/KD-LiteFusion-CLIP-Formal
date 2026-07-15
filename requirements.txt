@@ -1,0 +1,10 @@
+numpy
+pandas
+pillow
+tqdm
+scikit-learn
+torch
+torchvision
+thop
+pyyaml
+git+https://github.com/openai/CLIP.git

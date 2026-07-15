@@ -1,0 +1,10 @@
+{
+  "legacy_feature_dir": "/home/lpc/projects/KD-LiteFusion-CLIP_MKAN_REPRO/artifacts/clip_features",
+  "reused": false,
+  "reason": "Legacy caches were built from the 5119/1097/1098 teacher split. The formal protocol requires exact 6090/995/950 student split IDs, so no legacy cache is reused.",
+  "formal_split_id_hashes": {
+    "train": "38cd39b3be2eaec790ce2724fba6a2bf6352a214474c0ef28c984fca4232f7f4",
+    "val": "a7e92ff7f2028bfcffcefdee4d73b5ff8434dea648b5886d790161fa53a268d1",
+    "test": "d30633c0f9142c7adc65d9f7dff224abef531f8029813da1f2fae6c5a55c1f59"
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "status": "FAIL_CURRENT_TEACHER_PROTOCOL",
+  "existing_teacher_eligibility": "EXPLORATORY_ONLY",
+  "formal_teacher_required": true,
+  "decision": "The existing reproduction teacher and its current Logits KD result are exploratory only. Teacher training includes samples assigned to the student's validation and/or test split. Do not use those results as formal paper evidence. Train a new supplied-source reproduction teacher strictly on the fixed student train split before formal KD.",
+  "teacher_data_dir": "/home/lpc/projects/KD-LiteFusion-CLIP/mkan_refine/data",
+  "student_csv": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/data/clean/task2_clean_consistent.csv",
+  "teacher_counts": {
+    "train": 5119,
+    "val": 1097,
+    "test": 1098
+  },
+  "student_counts": {
+    "train": 6090,
+    "val": 995,
+    "test": 950
+  },
+  "expected_teacher_counts": {
+    "train": 5119,
+    "val": 1097,
+    "test": 1098
+  },
+  "expected_student_counts": {
+    "train": 6090,
+    "val": 995,
+    "test": 950
+  },
+  "count_mismatch": false,
+  "overlap_matrix": {
+    "train": {
+      "train": 3657,
+      "val": 708,
+      "test": 639
+    },
+    "val": {
+      "train": 776,
+      "val": 135,
+      "test": 158
+    },
+    "test": {
+      "train": 773,
+      "val": 152,
+      "test": 153
+    }
+  },
+  "critical_overlaps": {
+    "teacher_train_student_val": 708,
+    "teacher_train_student_test": 639
+  },
+  "off_diagonal_overlap_count": 3206,
+  "total_overlap_records": 7151,
+  "label_conflict_count": 0,
+  "duplicate_summary": {
+    "teacher": {
+      "train": 0,
+      "val": 0,
+      "test": 0
+    },
+    "student": {
+      "train": 0,
+      "val": 0,
+      "test": 0
+    }
+  },
+  "duplicate_sample_ids": {
+    "teacher": {
+      "train": [],
+      "val": [],
+      "test": []
+    },
+    "student": {
+      "train": [],
+      "val": [],
+      "test": []
+    }
+  },
+  "label_merge": {
+    "injured_or_dead_people": "affected_individuals",
+    "missing_or_found_people": "affected_individuals",
+    "vehicle_damage": "infrastructure_and_utility_damage"
+  },
+  "legacy_label_merge_counts": {
+    "injured_or_dead_people": 2,
+    "missing_or_found_people": 2,
+    "vehicle_damage": 2
+  },
+  "teacher_native_class_order": [
+    "affected_individuals",
+    "infrastructure_and_utility_damage",
+    "not_humanitarian",
+    "other_relevant_information",
+    "rescue_volunteering_or_donation_effort"
+  ],
+  "teacher_observed_class_order": [
+    "affected_individuals",
+    "infrastructure_and_utility_damage",
+    "not_humanitarian",
+    "other_relevant_information",
+    "rescue_volunteering_or_donation_effort"
+  ],
+  "student_fixed_class_order": [
+    "affected_individuals",
+    "infrastructure_and_utility_damage",
+    "rescue_volunteering_or_donation_effort",
+    "other_relevant_information",
+    "not_humanitarian"
+  ],
+  "class_order_matches": false,
+  "artifacts": {
+    "overlap_matrix": "data_overlap_matrix.csv",
+    "all_overlap_samples": "data_overlap_samples.csv",
+    "label_conflicts": "label_conflicts.csv"
+  }
+}

@@ -1,0 +1,64 @@
+# Python/runtime noise
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+
+# Environments and local secrets
+.env
+.env.*
+*.pem
+*.key
+.venv/
+venv/
+
+# Datasets and large model artifacts stay on the experiment server.
+data/
+teacher_cache/
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.npy
+*.npz
+
+# Runtime logs, caches, and generated bulk outputs.
+logs/
+artifacts/
+results_archive/
+backup_before_*/
+*.before_*
+outputs/**
+
+# Keep lightweight, reproducibility-critical reports under outputs.
+!outputs/formal_kd_stage/
+!outputs/formal_kd_stage/*.json
+!outputs/formal_kd_stage/*.md
+!outputs/formal_kd_stage/*.csv
+!outputs/server_mkan_kd_formal/
+!outputs/server_mkan_kd_formal/reports/
+!outputs/server_mkan_kd_formal/reports/*.json
+!outputs/server_mkan_kd_formal/reports/*.md
+!outputs/server_mkan_kd_formal/reports/*.csv
+!outputs/formal_multiseed/
+!outputs/formal_multiseed/*.json
+!outputs/formal_multiseed/*.md
+!outputs/formal_multiseed/*.csv
+!outputs/formal_multiseed/analysis/
+!outputs/formal_multiseed/analysis/*.json
+!outputs/formal_multiseed/analysis/*.md
+!outputs/formal_multiseed/analysis/*.csv
+!outputs/logits_kd_tuning/
+!outputs/logits_kd_tuning/*.json
+!outputs/logits_kd_tuning/*.md
+!outputs/logits_kd_tuning/*.csv
+!outputs/gate_analysis/
+!outputs/gate_analysis/*.json
+!outputs/gate_analysis/*.md
+!outputs/gate_analysis/*.csv
+!outputs/NEXT_STAGE_FORMAL_KD_REPORT.md
+!outputs/FORMAL_EXPERIMENT_MATRIX.csv
+!outputs/FORMAL_RESULTS_SUMMARY.json
+!outputs/FORMAL_RESULTS_SUMMARY.md

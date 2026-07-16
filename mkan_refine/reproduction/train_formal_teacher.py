@@ -191,9 +191,46 @@ def main() -> None:
 
     summary_rows = []
     for seed in [int(value) for value in train_cfg["seeds"]]:
-        seed_everything(seed)
         seed_dir = output_root / f"seed_{seed}"
         seed_dir.mkdir(parents=True, exist_ok=True)
+        root_checkpoint = checkpoint_dir / f"ema_seed{seed}.pth"
+        required_seed_artifacts = [
+            seed_dir / "best_weighted_f1.pt",
+            seed_dir / "best_macro_f1.pt",
+            seed_dir / "last.pt",
+            seed_dir / f"ema_seed{seed}.pth",
+            seed_dir / "train_history.json",
+            seed_dir / "val_metrics.json",
+            seed_dir / "test_metrics.json",
+            seed_dir / "per_class_metrics.csv",
+            seed_dir / "confusion_matrix.csv",
+            seed_dir / "val_predictions.csv",
+            seed_dir / "test_predictions.csv",
+            root_checkpoint,
+        ]
+        if all(path.is_file() and path.stat().st_size > 0 for path in required_seed_artifacts):
+            completed_payload = load_torch(seed_dir / "best_weighted_f1.pt")
+            if (
+                completed_payload.get("teacher_identity") == IDENTITY
+                and completed_payload.get("training_protocol") == PROTOCOL
+            ):
+                val_record = json.loads((seed_dir / "val_metrics.json").read_text(encoding="utf-8"))
+                test_record = json.loads((seed_dir / "test_metrics.json").read_text(encoding="utf-8"))
+                summary_rows.append(
+                    {
+                        "seed": seed,
+                        **val_record,
+                        **{
+                            f"test_{key}": value
+                            for key, value in test_record.items()
+                            if key not in {"selected_epoch", "selection"}
+                        },
+                    }
+                )
+                print(json.dumps({"seed": seed, "status": "SKIP_COMPLETE"}))
+                continue
+
+        seed_everything(seed)
         generator = torch.Generator().manual_seed(seed)
         loaders = {
             "train": DataLoader(
@@ -292,7 +329,6 @@ def main() -> None:
             writer.writerow(["sample_id", "true_native_id", "pred_native_id", *[f"logit_{x}" for x in NATIVE_LABELS]])
             for sample_id, label, prediction, row in zip(sample_ids, labels, predictions, logits.tolist()):
                 writer.writerow([sample_id, label, prediction, *row])
-        root_checkpoint = checkpoint_dir / f"ema_seed{seed}.pth"
         atomic_torch_save(best_payload, root_checkpoint)
         atomic_torch_save(best_payload, seed_dir / f"ema_seed{seed}.pth")
         summary_rows.append({"seed": seed, **val_record, **{f"test_{k}": v for k, v in test_metrics.items()}})

@@ -29,7 +29,7 @@ training:
   seeds: [3407, 42, 2024]
   epochs: 30
   batch_size: 32
-  num_workers: 4
+  num_workers: 0
   learning_rate: 0.0001
   weight_decay: 0.01
   ema_decay: 0.999

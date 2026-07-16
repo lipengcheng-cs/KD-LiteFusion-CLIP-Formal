@@ -1,0 +1,795 @@
+{
+  "status": "PASS",
+  "expected_split_counts": {
+    "train": 6090,
+    "val": 995,
+    "test": 950
+  },
+  "global_checks": [
+    {
+      "name": "fixed_split_counts",
+      "status": "PASS",
+      "detail": "{'train': 6090, 'val': 995, 'test': 950}"
+    },
+    {
+      "name": "formal_teacher_cache_report",
+      "status": "PASS",
+      "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/server_mkan_kd_formal/teacher_cache/check_report.json"
+    },
+    {
+      "name": "formal_logits_cache_exists",
+      "status": "PASS",
+      "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/server_mkan_kd_formal/teacher_cache/mkan_train_logits.pt"
+    }
+  ],
+  "runs": [
+    {
+      "condition": "wo_kd",
+      "seed": 3407,
+      "run_dir": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_3407",
+      "status": "PASS",
+      "checks": [
+        {
+          "name": "required_artifacts",
+          "status": "PASS",
+          "detail": "all present"
+        },
+        {
+          "name": "seed",
+          "status": "PASS",
+          "detail": "3407"
+        },
+        {
+          "name": "training_protocol",
+          "status": "PASS",
+          "detail": "student_fixed_split_6090_995_950"
+        },
+        {
+          "name": "rank_32",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "teacher_cache_not_used",
+          "status": "PASS",
+          "detail": "None"
+        },
+        {
+          "name": "finite_eval_metrics.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_3407/eval_metrics.json"
+        },
+        {
+          "name": "finite_train_history.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_3407/train_history.json"
+        },
+        {
+          "name": "finite_per_class_metrics.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_3407/per_class_metrics.csv"
+        },
+        {
+          "name": "finite_confusion_matrix.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_3407/confusion_matrix.csv"
+        },
+        {
+          "name": "finite_test_predictions.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_3407/test_predictions.csv"
+        },
+        {
+          "name": "test_prediction_count",
+          "status": "PASS",
+          "detail": "950"
+        },
+        {
+          "name": "best_weighted_f1.pt_seed",
+          "status": "PASS",
+          "detail": "3407"
+        },
+        {
+          "name": "best_weighted_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_weighted_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_weighted_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "best_macro_f1.pt_seed",
+          "status": "PASS",
+          "detail": "3407"
+        },
+        {
+          "name": "best_macro_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_macro_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_macro_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "last.pt_seed",
+          "status": "PASS",
+          "detail": "3407"
+        },
+        {
+          "name": "last.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "last.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "last.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        }
+      ]
+    },
+    {
+      "condition": "wo_kd",
+      "seed": 42,
+      "run_dir": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_42",
+      "status": "PASS",
+      "checks": [
+        {
+          "name": "required_artifacts",
+          "status": "PASS",
+          "detail": "all present"
+        },
+        {
+          "name": "seed",
+          "status": "PASS",
+          "detail": "42"
+        },
+        {
+          "name": "training_protocol",
+          "status": "PASS",
+          "detail": "student_fixed_split_6090_995_950"
+        },
+        {
+          "name": "rank_32",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "teacher_cache_not_used",
+          "status": "PASS",
+          "detail": "None"
+        },
+        {
+          "name": "finite_eval_metrics.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_42/eval_metrics.json"
+        },
+        {
+          "name": "finite_train_history.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_42/train_history.json"
+        },
+        {
+          "name": "finite_per_class_metrics.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_42/per_class_metrics.csv"
+        },
+        {
+          "name": "finite_confusion_matrix.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_42/confusion_matrix.csv"
+        },
+        {
+          "name": "finite_test_predictions.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_42/test_predictions.csv"
+        },
+        {
+          "name": "test_prediction_count",
+          "status": "PASS",
+          "detail": "950"
+        },
+        {
+          "name": "best_weighted_f1.pt_seed",
+          "status": "PASS",
+          "detail": "42"
+        },
+        {
+          "name": "best_weighted_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_weighted_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_weighted_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "best_macro_f1.pt_seed",
+          "status": "PASS",
+          "detail": "42"
+        },
+        {
+          "name": "best_macro_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_macro_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_macro_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "last.pt_seed",
+          "status": "PASS",
+          "detail": "42"
+        },
+        {
+          "name": "last.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "last.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "last.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        }
+      ]
+    },
+    {
+      "condition": "wo_kd",
+      "seed": 2024,
+      "run_dir": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_2024",
+      "status": "PASS",
+      "checks": [
+        {
+          "name": "required_artifacts",
+          "status": "PASS",
+          "detail": "all present"
+        },
+        {
+          "name": "seed",
+          "status": "PASS",
+          "detail": "2024"
+        },
+        {
+          "name": "training_protocol",
+          "status": "PASS",
+          "detail": "student_fixed_split_6090_995_950"
+        },
+        {
+          "name": "rank_32",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "teacher_cache_not_used",
+          "status": "PASS",
+          "detail": "None"
+        },
+        {
+          "name": "finite_eval_metrics.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_2024/eval_metrics.json"
+        },
+        {
+          "name": "finite_train_history.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_2024/train_history.json"
+        },
+        {
+          "name": "finite_per_class_metrics.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_2024/per_class_metrics.csv"
+        },
+        {
+          "name": "finite_confusion_matrix.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_2024/confusion_matrix.csv"
+        },
+        {
+          "name": "finite_test_predictions.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/wo_kd/seed_2024/test_predictions.csv"
+        },
+        {
+          "name": "test_prediction_count",
+          "status": "PASS",
+          "detail": "950"
+        },
+        {
+          "name": "best_weighted_f1.pt_seed",
+          "status": "PASS",
+          "detail": "2024"
+        },
+        {
+          "name": "best_weighted_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_weighted_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_weighted_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "best_macro_f1.pt_seed",
+          "status": "PASS",
+          "detail": "2024"
+        },
+        {
+          "name": "best_macro_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_macro_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_macro_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "last.pt_seed",
+          "status": "PASS",
+          "detail": "2024"
+        },
+        {
+          "name": "last.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "last.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "last.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        }
+      ]
+    },
+    {
+      "condition": "logits_kd",
+      "seed": 3407,
+      "run_dir": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_3407",
+      "status": "PASS",
+      "checks": [
+        {
+          "name": "required_artifacts",
+          "status": "PASS",
+          "detail": "all present"
+        },
+        {
+          "name": "seed",
+          "status": "PASS",
+          "detail": "3407"
+        },
+        {
+          "name": "training_protocol",
+          "status": "PASS",
+          "detail": "student_fixed_split_6090_995_950"
+        },
+        {
+          "name": "rank_32",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "formal_teacher_cache_used",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/server_mkan_kd_formal/teacher_cache/mkan_train_logits.pt"
+        },
+        {
+          "name": "finite_eval_metrics.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_3407/eval_metrics.json"
+        },
+        {
+          "name": "finite_train_history.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_3407/train_history.json"
+        },
+        {
+          "name": "finite_per_class_metrics.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_3407/per_class_metrics.csv"
+        },
+        {
+          "name": "finite_confusion_matrix.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_3407/confusion_matrix.csv"
+        },
+        {
+          "name": "finite_test_predictions.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_3407/test_predictions.csv"
+        },
+        {
+          "name": "test_prediction_count",
+          "status": "PASS",
+          "detail": "950"
+        },
+        {
+          "name": "best_weighted_f1.pt_seed",
+          "status": "PASS",
+          "detail": "3407"
+        },
+        {
+          "name": "best_weighted_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_weighted_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_weighted_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "best_macro_f1.pt_seed",
+          "status": "PASS",
+          "detail": "3407"
+        },
+        {
+          "name": "best_macro_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_macro_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_macro_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "last.pt_seed",
+          "status": "PASS",
+          "detail": "3407"
+        },
+        {
+          "name": "last.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "last.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "last.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        }
+      ]
+    },
+    {
+      "condition": "logits_kd",
+      "seed": 42,
+      "run_dir": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_42",
+      "status": "PASS",
+      "checks": [
+        {
+          "name": "required_artifacts",
+          "status": "PASS",
+          "detail": "all present"
+        },
+        {
+          "name": "seed",
+          "status": "PASS",
+          "detail": "42"
+        },
+        {
+          "name": "training_protocol",
+          "status": "PASS",
+          "detail": "student_fixed_split_6090_995_950"
+        },
+        {
+          "name": "rank_32",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "formal_teacher_cache_used",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/server_mkan_kd_formal/teacher_cache/mkan_train_logits.pt"
+        },
+        {
+          "name": "finite_eval_metrics.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_42/eval_metrics.json"
+        },
+        {
+          "name": "finite_train_history.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_42/train_history.json"
+        },
+        {
+          "name": "finite_per_class_metrics.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_42/per_class_metrics.csv"
+        },
+        {
+          "name": "finite_confusion_matrix.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_42/confusion_matrix.csv"
+        },
+        {
+          "name": "finite_test_predictions.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_42/test_predictions.csv"
+        },
+        {
+          "name": "test_prediction_count",
+          "status": "PASS",
+          "detail": "950"
+        },
+        {
+          "name": "best_weighted_f1.pt_seed",
+          "status": "PASS",
+          "detail": "42"
+        },
+        {
+          "name": "best_weighted_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_weighted_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_weighted_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "best_macro_f1.pt_seed",
+          "status": "PASS",
+          "detail": "42"
+        },
+        {
+          "name": "best_macro_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_macro_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_macro_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "last.pt_seed",
+          "status": "PASS",
+          "detail": "42"
+        },
+        {
+          "name": "last.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "last.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "last.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        }
+      ]
+    },
+    {
+      "condition": "logits_kd",
+      "seed": 2024,
+      "run_dir": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_2024",
+      "status": "PASS",
+      "checks": [
+        {
+          "name": "required_artifacts",
+          "status": "PASS",
+          "detail": "all present"
+        },
+        {
+          "name": "seed",
+          "status": "PASS",
+          "detail": "2024"
+        },
+        {
+          "name": "training_protocol",
+          "status": "PASS",
+          "detail": "student_fixed_split_6090_995_950"
+        },
+        {
+          "name": "rank_32",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "formal_teacher_cache_used",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/server_mkan_kd_formal/teacher_cache/mkan_train_logits.pt"
+        },
+        {
+          "name": "finite_eval_metrics.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_2024/eval_metrics.json"
+        },
+        {
+          "name": "finite_train_history.json",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_2024/train_history.json"
+        },
+        {
+          "name": "finite_per_class_metrics.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_2024/per_class_metrics.csv"
+        },
+        {
+          "name": "finite_confusion_matrix.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_2024/confusion_matrix.csv"
+        },
+        {
+          "name": "finite_test_predictions.csv",
+          "status": "PASS",
+          "detail": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_2024/test_predictions.csv"
+        },
+        {
+          "name": "test_prediction_count",
+          "status": "PASS",
+          "detail": "950"
+        },
+        {
+          "name": "best_weighted_f1.pt_seed",
+          "status": "PASS",
+          "detail": "2024"
+        },
+        {
+          "name": "best_weighted_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_weighted_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_weighted_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "best_macro_f1.pt_seed",
+          "status": "PASS",
+          "detail": "2024"
+        },
+        {
+          "name": "best_macro_f1.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "best_macro_f1.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "best_macro_f1.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        },
+        {
+          "name": "last.pt_seed",
+          "status": "PASS",
+          "detail": "2024"
+        },
+        {
+          "name": "last.pt_rank",
+          "status": "PASS",
+          "detail": "32"
+        },
+        {
+          "name": "last.pt_clip_frozen",
+          "status": "PASS",
+          "detail": "True"
+        },
+        {
+          "name": "last.pt_finite",
+          "status": "PASS",
+          "detail": "all checkpoint tensors/metrics finite"
+        }
+      ]
+    }
+  ]
+}

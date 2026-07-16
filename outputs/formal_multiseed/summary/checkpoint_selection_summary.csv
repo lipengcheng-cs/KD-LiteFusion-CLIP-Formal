@@ -1,0 +1,7 @@
+condition,seed,primary_checkpoint,supplementary_checkpoint,main_table_uses,best_macro_status
+wo_kd,3407,best_weighted_f1.pt,best_macro_f1.pt,best_weighted_f1.pt,supplementary_only
+wo_kd,42,best_weighted_f1.pt,best_macro_f1.pt,best_weighted_f1.pt,supplementary_only
+wo_kd,2024,best_weighted_f1.pt,best_macro_f1.pt,best_weighted_f1.pt,supplementary_only
+logits_kd,3407,best_weighted_f1.pt,best_macro_f1.pt,best_weighted_f1.pt,supplementary_only
+logits_kd,42,best_weighted_f1.pt,best_macro_f1.pt,best_weighted_f1.pt,supplementary_only
+logits_kd,2024,best_weighted_f1.pt,best_macro_f1.pt,best_weighted_f1.pt,supplementary_only

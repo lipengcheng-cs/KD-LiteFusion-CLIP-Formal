@@ -1,0 +1,17 @@
+{
+  "accuracy": 0.911578947368421,
+  "weighted_f1": 0.9106928868681131,
+  "macro_f1": 0.8419762822749203,
+  "precision": 0.9119503753783263,
+  "recall": 0.911578947368421,
+  "selected_strategy": "validation_optimized_weights",
+  "selected_weights": {
+    "3407": 0.0,
+    "42": 0.22,
+    "2024": 0.78
+  },
+  "evaluated_once_after_validation_selection": true,
+  "teacher_identity": "mkan_refine_supplied_source_reproduction",
+  "strict_b_spline_reproduction": false,
+  "training_protocol": "student_fixed_split_6090_995_950"
+}

@@ -1,0 +1,35 @@
+{
+  "selected_strategy": "validation_optimized_weights",
+  "selected_weights": {
+    "3407": 0.0,
+    "42": 0.22,
+    "2024": 0.78
+  },
+  "selected_validation_metrics": {
+    "accuracy": 0.9005025125628141,
+    "weighted_f1": 0.8998980277910813,
+    "macro_f1": 0.8493635221602707,
+    "precision": 0.9007903494562421,
+    "recall": 0.9005025125628141
+  },
+  "selection_primary_metric": "validation_weighted_f1",
+  "selection_secondary_metric": "validation_macro_f1",
+  "selection_reason": "Validation-optimized ensemble strictly beats the best single model.",
+  "best_single_seed": 3407,
+  "best_single_validation_metrics": {
+    "accuracy": 0.9005025125628141,
+    "weighted_f1": 0.8997804069948664,
+    "macro_f1": 0.8520261212439137,
+    "precision": 0.9006603799551589,
+    "recall": 0.9005025125628141
+  },
+  "test_used_for_selection": false,
+  "teacher_identity": "mkan_refine_supplied_source_reproduction",
+  "strict_b_spline_reproduction": false,
+  "training_protocol": "student_fixed_split_6090_995_950",
+  "checkpoints": [
+    "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/server_mkan_kd_formal/checkpoints/ema_seed3407.pth",
+    "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/server_mkan_kd_formal/checkpoints/ema_seed42.pth",
+    "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/server_mkan_kd_formal/checkpoints/ema_seed2024.pth"
+  ]
+}

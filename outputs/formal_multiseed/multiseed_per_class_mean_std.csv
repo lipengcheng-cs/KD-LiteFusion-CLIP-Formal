@@ -1,0 +1,11 @@
+condition,label,support_mean,support_std
+logits_kd,affected_individuals,7.0,0.0
+logits_kd,infrastructure_and_utility_damage,78.0,0.0
+logits_kd,not_humanitarian,504.0,0.0
+logits_kd,other_relevant_information,235.0,0.0
+logits_kd,rescue_volunteering_or_donation_effort,126.0,0.0
+wo_kd,affected_individuals,7.0,0.0
+wo_kd,infrastructure_and_utility_damage,78.0,0.0
+wo_kd,not_humanitarian,504.0,0.0
+wo_kd,other_relevant_information,235.0,0.0
+wo_kd,rescue_volunteering_or_donation_effort,126.0,0.0

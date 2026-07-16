@@ -1,0 +1,38 @@
+experiment_contract:
+  matched_pair_seed: 3407
+  condition: logits_kd
+  only_difference: Logits KD enabled/disabled
+  training_protocol: student_fixed_split_6090_995_950
+data:
+  csv_path: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/data/clean/task2_clean_consistent.csv
+  image_root: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/data/CrisisMMD_v2.0
+  teacher_cache: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/server_mkan_kd_formal/teacher_cache/mkan_train_logits.pt
+model:
+  clip_backend: openai
+  clip_model_name: ViT-L/14@336px
+  clip_model_path: /home/lpc/.cache/clip/ViT-L-14-336px.pt
+  clip_frozen: true
+  rank: 32
+  dropout: 0.2
+train:
+  output_dir: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/formal_multiseed/logits_kd/seed_3407
+  epochs: 10
+  batch_size: 8
+  num_workers: 4
+  lr: 0.0002
+  weight_decay: 0.01
+  disable_kd: false
+  save_best_by: weighted_f1
+loss:
+  use_class_weight: true
+  class_weight_method: inverse_frequency
+  label_smoothing: 0.05
+teacher:
+  temperature: 4.0
+  confidence_weighted_kd: false
+kd_weights:
+  logits: 0.5
+  feature: 0.0
+  gate: 0.0
+  relation: 0.0
+  prototype: 0.0

@@ -1,0 +1,23 @@
+{
+  "test": "exact paired McNemar",
+  "results": {
+    "3407": {
+      "wo_correct_kd_wrong": 12,
+      "wo_wrong_kd_correct": 27,
+      "discordant": 39,
+      "exact_two_sided_p": 0.023702702470473014
+    },
+    "42": {
+      "wo_correct_kd_wrong": 12,
+      "wo_wrong_kd_correct": 49,
+      "discordant": 61,
+      "exact_two_sided_p": 1.969878418086636e-06
+    },
+    "2024": {
+      "wo_correct_kd_wrong": 7,
+      "wo_wrong_kd_correct": 29,
+      "discordant": 36,
+      "exact_two_sided_p": 0.00031255115754902363
+    }
+  }
+}

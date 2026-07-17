@@ -16,3 +16,11 @@ The teacher is named **MKAN-Refine supplied-source reproduction teacher** (åŸºäº
 - Enforced seed 3407, rank 32, frozen CLIP, `num_workers=0`, fixed split, formal PASS teacher logits, independent trial directories, and finite/complete artifacts.
 - Selected T=6.0 and logits weight=1.0 by validation Weighted-F1 with validation Macro-F1 as the tie-breaker. Test metrics were not used for tuning.
 - Preserved the original formal three-seed results; tuned three-seed confirmation must use `outputs/formal_multiseed_tuned/`.
+
+## Formal class-level statistical analysis
+
+- Added sample-id-aligned paired prediction transitions, per-class metrics, per-seed and averaged normalized confusion matrices, all seven affected test cases, and rescue regression/improvement case tables.
+- Added exact paired McNemar tests for every seed.
+- Added a fixed-seed, class-stratified, paired 2,000-replicate bootstrap for Accuracy, Weighted-F1, Macro-F1, paired deltas, and per-class F1 with support recorded.
+- Kept all statistical analysis strictly post-selection; no statistic is used to choose a model or hyperparameter.
+- Recorded positive 95% paired intervals for Weighted-F1 and Macro-F1 and the support=7 limitation for `affected_individuals`.

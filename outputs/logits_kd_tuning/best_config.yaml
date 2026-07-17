@@ -1,0 +1,14 @@
+selection:
+  primary: validation_weighted_f1
+  secondary: validation_macro_f1
+  test_used: false
+  development_seed: 3407
+stage_a_best_temperature: 6.0
+teacher:
+  temperature: 6.0
+kd_weights:
+  logits: 1.0
+validation_metrics:
+  weighted_f1: 0.9116301006052422
+  macro_f1: 0.8727841727773251
+same_as_formal_baseline: false

@@ -1,0 +1,8 @@
+{
+  "best_temperature": 6.0,
+  "rule": [
+    "validation_weighted_f1",
+    "validation_macro_f1"
+  ],
+  "test_used": false
+}

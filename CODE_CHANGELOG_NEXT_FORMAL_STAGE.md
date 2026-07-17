@@ -8,3 +8,11 @@
 - Recorded the `affected_individuals` support=7 stability warning.
 
 The teacher is named **MKAN-Refine supplied-source reproduction teacher** (基于现有源码重训的 MKAN-Refine 复现教师). It is not an author-original checkpoint and is not described as a true B-spline KAN.
+
+## Staged Logits KD tuning
+
+- Added a validation-only two-stage search: temperature `{2, 4, 6}` at weight 0.5, followed by weight `{0.25, 0.5, 1.0}` at the selected temperature.
+- Reused the already-complete T=4, weight=0.5 formal seed-3407 run and the selected Stage-A trial instead of retraining identical configurations.
+- Enforced seed 3407, rank 32, frozen CLIP, `num_workers=0`, fixed split, formal PASS teacher logits, independent trial directories, and finite/complete artifacts.
+- Selected T=6.0 and logits weight=1.0 by validation Weighted-F1 with validation Macro-F1 as the tie-breaker. Test metrics were not used for tuning.
+- Preserved the original formal three-seed results; tuned three-seed confirmation must use `outputs/formal_multiseed_tuned/`.

@@ -69,14 +69,36 @@ class TeacherCache:
                 f"Teacher cache id_to_label does not match the fixed five-class mapping: {id_to_label}"
             )
 
+        per_sample = {"logits": logits}
+        for key in ("feature", "gate"):
+            if key not in raw:
+                continue
+            tensor = torch.as_tensor(raw[key]).detach().cpu().float()
+            if tensor.ndim != 2 or tensor.shape[0] != len(sample_ids):
+                raise ValueError(
+                    f"Teacher {key} must have shape [N, D] with N={len(sample_ids)}, "
+                    f"got {tuple(tensor.shape)}"
+                )
+            if not torch.isfinite(tensor).all():
+                raise ValueError(f"Teacher {key} contains NaN or Inf")
+            per_sample[key] = tensor
+
+        if "prototypes" in raw:
+            prototypes = torch.as_tensor(raw["prototypes"]).detach().cpu().float()
+            if prototypes.ndim != 2 or prototypes.shape[0] != len(EXPECTED_LABEL_TO_ID):
+                raise ValueError(f"Teacher prototypes have invalid shape: {tuple(prototypes.shape)}")
+            if not torch.isfinite(prototypes).all():
+                raise ValueError("Teacher prototypes contain NaN or Inf")
+            self.global_prototypes = prototypes
+
         self.by_id = {
-            sample_id: {"logits": logits[index]}
+            sample_id: {key: tensor[index] for key, tensor in per_sample.items()}
             for index, sample_id in enumerate(sample_ids)
         }
         self.metadata = {
             key: value
             for key, value in raw.items()
-            if key not in {"sample_ids", "logits"}
+            if key not in {"sample_ids", "logits", "feature", "gate", "prototypes"}
         }
 
     def has_sample(self, sample_id: Any) -> bool:

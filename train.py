@@ -132,15 +132,14 @@ def validate_args(args) -> None:
         raise ValueError("This experiment requires a frozen OpenAI CLIP encoder")
     if args.temperature <= 0:
         raise ValueError("teacher.temperature must be positive")
-    other_weights = {
-        "feature": args.feature_kd_weight,
+    unsupported_weights = {
         "gate": args.gate_kd_weight,
         "relation": args.relation_kd_weight,
         "prototype": args.prototype_kd_weight,
     }
-    nonzero = {name: value for name, value in other_weights.items() if float(value) != 0.0}
+    nonzero = {name: value for name, value in unsupported_weights.items() if float(value) != 0.0}
     if nonzero:
-        raise ValueError(f"This stage supports Logits KD only; these KD weights must be 0: {nonzero}")
+        raise ValueError(f"This stage supports Logits KD and Feature KD only; these KD weights must be 0: {nonzero}")
     if args.use_kd_schedule:
         raise ValueError("KD scheduling is not enabled for the minimal Logits KD experiment")
     if args.confidence_weighted_kd:
@@ -148,13 +147,15 @@ def validate_args(args) -> None:
     if args.disable_kd:
         if args.teacher_cache:
             raise ValueError("w/o KD must not load a teacher cache")
+        if args.logits_kd_weight > 0 or args.feature_kd_weight > 0:
+            raise ValueError("w/o KD must set Logits and Feature KD weights to 0")
         return
     if not args.teacher_cache:
         raise ValueError("Logits KD requires data.teacher_cache")
     if not os.path.isfile(args.teacher_cache):
         raise FileNotFoundError(f"Teacher logits cache not found: {args.teacher_cache}")
-    if args.logits_kd_weight <= 0:
-        raise ValueError("kd_weights.logits must be greater than 0 for Logits KD")
+    if args.logits_kd_weight <= 0 and args.feature_kd_weight <= 0:
+        raise ValueError("At least one of kd_weights.logits or kd_weights.feature must be greater than 0")
     if os.path.normpath(args.output_dir) == os.path.normpath("outputs/full_wo_kd"):
         raise ValueError("Logits KD must not write to outputs/full_wo_kd")
 
@@ -180,7 +181,7 @@ def compute_class_weight(csv_path: str, label_to_id: Dict[str, int], method: str
 def kd_weights(args) -> Dict[str, float]:
     return {
         "logits": 0.0 if args.disable_kd else float(args.logits_kd_weight),
-        "feature": 0.0,
+        "feature": 0.0 if args.disable_kd else float(args.feature_kd_weight),
         "gate": 0.0,
         "relation": 0.0,
         "prototype": 0.0,

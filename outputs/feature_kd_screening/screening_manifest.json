@@ -1,0 +1,92 @@
+{
+  "selection_uses_test": false,
+  "baseline": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/logits_kd_tuning/weight/T_6p0_w_1p0",
+  "baseline_metrics": {
+    "accuracy": 0.9115577889447236,
+    "weighted_f1": 0.9116301006052422,
+    "macro_f1": 0.8727841727773251,
+    "precision": 0.9130166671563684,
+    "recall": 0.9115577889447236
+  },
+  "trials": [
+    {
+      "condition": "feature_only",
+      "seed": 3407,
+      "feature_kd_weight": 0.05,
+      "temperature": 6.0,
+      "logits_kd_weight": 0.0,
+      "validation_weighted_f1": 0.8995838418498955,
+      "validation_macro_f1": 0.7889615629249171,
+      "baseline_validation_weighted_f1": 0.9116301006052422,
+      "baseline_validation_macro_f1": 0.8727841727773251,
+      "failed_stop_rule": true,
+      "path": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/feature_only/seed_3407_fw_0p05"
+    },
+    {
+      "condition": "feature_only",
+      "seed": 3407,
+      "feature_kd_weight": 0.1,
+      "temperature": 6.0,
+      "logits_kd_weight": 0.0,
+      "validation_weighted_f1": 0.901494855323598,
+      "validation_macro_f1": 0.7966193110539237,
+      "baseline_validation_weighted_f1": 0.9116301006052422,
+      "baseline_validation_macro_f1": 0.8727841727773251,
+      "failed_stop_rule": true,
+      "path": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/feature_only/seed_3407_fw_0p1"
+    },
+    {
+      "condition": "feature_only",
+      "seed": 3407,
+      "feature_kd_weight": 0.2,
+      "temperature": 6.0,
+      "logits_kd_weight": 0.0,
+      "validation_weighted_f1": 0.9005864819200258,
+      "validation_macro_f1": 0.7895461236572124,
+      "baseline_validation_weighted_f1": 0.9116301006052422,
+      "baseline_validation_macro_f1": 0.8727841727773251,
+      "failed_stop_rule": true,
+      "path": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/feature_only/seed_3407_fw_0p2"
+    },
+    {
+      "condition": "logits_feature",
+      "seed": 3407,
+      "feature_kd_weight": 0.05,
+      "temperature": 6.0,
+      "logits_kd_weight": 1.0,
+      "validation_weighted_f1": 0.9115335054623561,
+      "validation_macro_f1": 0.871785087028133,
+      "baseline_validation_weighted_f1": 0.9116301006052422,
+      "baseline_validation_macro_f1": 0.8727841727773251,
+      "failed_stop_rule": false,
+      "path": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/logits_feature/seed_3407_fw_0p05"
+    },
+    {
+      "condition": "logits_feature",
+      "seed": 3407,
+      "feature_kd_weight": 0.1,
+      "temperature": 6.0,
+      "logits_kd_weight": 1.0,
+      "validation_weighted_f1": 0.9114894544596883,
+      "validation_macro_f1": 0.8725918906540915,
+      "baseline_validation_weighted_f1": 0.9116301006052422,
+      "baseline_validation_macro_f1": 0.8727841727773251,
+      "failed_stop_rule": false,
+      "path": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/logits_feature/seed_3407_fw_0p1"
+    },
+    {
+      "condition": "logits_feature",
+      "seed": 3407,
+      "feature_kd_weight": 0.2,
+      "temperature": 6.0,
+      "logits_kd_weight": 1.0,
+      "validation_weighted_f1": 0.9131464047550527,
+      "validation_macro_f1": 0.865281498360871,
+      "baseline_validation_weighted_f1": 0.9116301006052422,
+      "baseline_validation_macro_f1": 0.8727841727773251,
+      "failed_stop_rule": false,
+      "path": "/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/logits_feature/seed_3407_fw_0p2"
+    }
+  ],
+  "all_failed": false
+}

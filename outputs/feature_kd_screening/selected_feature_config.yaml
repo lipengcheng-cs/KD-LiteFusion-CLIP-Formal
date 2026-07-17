@@ -1,0 +1,7 @@
+condition: logits_feature
+feature_kd_weight: 0.2
+temperature: 6.0
+logits_kd_weight: 1.0
+selection_primary: validation_weighted_f1
+selection_secondary: validation_macro_f1
+test_used: false

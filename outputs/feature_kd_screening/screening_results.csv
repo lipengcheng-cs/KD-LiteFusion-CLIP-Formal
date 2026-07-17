@@ -1,0 +1,7 @@
+condition,seed,feature_kd_weight,temperature,logits_kd_weight,validation_weighted_f1,validation_macro_f1,baseline_validation_weighted_f1,baseline_validation_macro_f1,failed_stop_rule,path
+feature_only,3407,0.05,6.0,0.0,0.8995838418498955,0.7889615629249171,0.9116301006052422,0.8727841727773251,True,/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/feature_only/seed_3407_fw_0p05
+feature_only,3407,0.1,6.0,0.0,0.901494855323598,0.7966193110539237,0.9116301006052422,0.8727841727773251,True,/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/feature_only/seed_3407_fw_0p1
+feature_only,3407,0.2,6.0,0.0,0.9005864819200258,0.7895461236572124,0.9116301006052422,0.8727841727773251,True,/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/feature_only/seed_3407_fw_0p2
+logits_feature,3407,0.05,6.0,1.0,0.9115335054623561,0.871785087028133,0.9116301006052422,0.8727841727773251,False,/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/logits_feature/seed_3407_fw_0p05
+logits_feature,3407,0.1,6.0,1.0,0.9114894544596883,0.8725918906540915,0.9116301006052422,0.8727841727773251,False,/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/logits_feature/seed_3407_fw_0p1
+logits_feature,3407,0.2,6.0,1.0,0.9131464047550527,0.865281498360871,0.9116301006052422,0.8727841727773251,False,/home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/outputs/feature_kd_screening/logits_feature/seed_3407_fw_0p2

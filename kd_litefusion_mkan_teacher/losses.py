@@ -54,10 +54,22 @@ def feature_kd_loss(
     teacher_feature: torch.Tensor,
     sample_weight: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
-    if student_feature.shape[-1] != teacher_feature.shape[-1]:
-        return student_feature.new_tensor(0.0)
-    per_sample = F.mse_loss(student_feature, teacher_feature, reduction="none").mean(dim=-1)
-    return _weighted_mean(per_sample, sample_weight)
+    if student_feature.shape != teacher_feature.shape:
+        raise ValueError(
+            f"Student/teacher feature shape mismatch: {tuple(student_feature.shape)} vs "
+            f"{tuple(teacher_feature.shape)}"
+        )
+    student_fp32 = student_feature.float()
+    teacher_fp32 = teacher_feature.detach().to(device=student_feature.device, dtype=torch.float32)
+    if not torch.isfinite(student_fp32).all() or not torch.isfinite(teacher_fp32).all():
+        raise FloatingPointError("Student or teacher feature contains NaN or Inf")
+    student_norm = F.normalize(student_fp32, dim=-1)
+    teacher_norm = F.normalize(teacher_fp32, dim=-1)
+    per_sample = 1.0 - F.cosine_similarity(student_norm, teacher_norm, dim=-1)
+    loss = _weighted_mean(per_sample, sample_weight)
+    if not torch.isfinite(loss):
+        raise FloatingPointError("Feature KD loss is NaN or Inf")
+    return loss
 
 
 def adapt_student_gate(student_gate: torch.Tensor, teacher_gate: torch.Tensor) -> torch.Tensor:
@@ -134,7 +146,10 @@ def compute_total_loss(
             sample_id = batch.get("sample_id", ["UNKNOWN"])[0]
             raise ValueError(f"Missing teacher logits for sample_id: {sample_id}")
         losses["logits_kd"] = logits_kd_loss(logits, batch["teacher_logits"], temperature, sample_weight)
-    if weights.get("feature", 0.0) > 0 and "teacher_feature" in batch:
+    if weights.get("feature", 0.0) > 0:
+        if "teacher_feature" not in batch:
+            sample_id = batch.get("sample_id", ["UNKNOWN"])[0]
+            raise ValueError(f"Missing teacher feature for sample_id: {sample_id}")
         losses["feature_kd"] = feature_kd_loss(outputs["feature"], batch["teacher_feature"], sample_weight)
     if weights.get("gate", 0.0) > 0 and "teacher_gate" in batch:
         student_gate = adapt_student_gate(outputs["gate"], batch["teacher_gate"])

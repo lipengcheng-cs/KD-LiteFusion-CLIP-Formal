@@ -24,3 +24,22 @@ The teacher is named **MKAN-Refine supplied-source reproduction teacher** (åŸºäº
 - Added a fixed-seed, class-stratified, paired 2,000-replicate bootstrap for Accuracy, Weighted-F1, Macro-F1, paired deltas, and per-class F1 with support recorded.
 - Kept all statistical analysis strictly post-selection; no statistic is used to choose a model or hyperparameter.
 - Recorded positive 95% paired intervals for Weighted-F1 and Macro-F1 and the support=7 limitation for `affected_individuals`.
+
+## Feature KD screening
+
+- Extended the strict teacher cache reader to expose finite per-sample 768D features and global prototypes by sample ID while keeping validation/test teacher-free.
+- Implemented FP32 detached-teacher cosine Feature KD on L2-normalized final post-gate/pre-classifier student features; missing features, shape mismatch, NaN, and Inf now fail immediately.
+- Added validation-only seed-3407 screening for Feature-only and Logits+Feature conditions at weights `{0.05, 0.1, 0.2}`, the predeclared 0.003 stop rule, and conditional selected-config extension to seeds 42 and 2024.
+- Kept Relation KD, Prototype KD, Gate KD loss, Full KD, and rank sensitivity disabled.
+
+## Formal teacher gate diagnostics
+
+- Added dimension-, class-, saturation-, correctness-, affected-, and rescue-level diagnostics for the validation-weighted ensemble gate in the formal PASS full cache.
+- Added publication-oriented CSV and PNG artifacts and explicit near-constant/saturation thresholds.
+- Computed image/text feature discrepancy by streaming frozen CLIP features with `num_workers=0`; no 7.6GB intermediate cache is regenerated.
+- Added diagnostics only; no Gate KD loss is implemented or trained.
+
+## Final report assembly
+
+- Added a formal experiment matrix, JSON/Markdown result summaries, and a next-stage report that separates leakage-affected exploratory history from fixed-split formal results.
+- The report answers stability, paired improvement, confidence interval, McNemar, small-support, rescue, tuning, Feature KD, Gate, paper-table, and next-stage questions.

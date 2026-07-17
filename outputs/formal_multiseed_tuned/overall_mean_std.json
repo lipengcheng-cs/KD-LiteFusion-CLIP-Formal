@@ -1,0 +1,15 @@
+{
+  "n_seeds": 3,
+  "temperature": 6.0,
+  "logits_kd_weight": 1.0,
+  "accuracy_mean": 0.9031578947368422,
+  "accuracy_std": 0.0031578947368420818,
+  "weighted_f1_mean": 0.9035253043556817,
+  "weighted_f1_std": 0.002912935354571332,
+  "macro_f1_mean": 0.8584737835709966,
+  "macro_f1_std": 0.0026955652091625033,
+  "precision_mean": 0.9051194326209401,
+  "precision_std": 0.002651252558140215,
+  "recall_mean": 0.9031578947368422,
+  "recall_std": 0.0031578947368420818
+}

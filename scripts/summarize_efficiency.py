@@ -7,6 +7,7 @@ import argparse
 import json
 import math
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -15,6 +16,281 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 TEACHER = "MKAN-Refine supplied-source reproduction teacher"
+
+EXPECTED_MODEL_KEYS = ("teacher_single", "teacher_ensemble", "student_shared")
+EXPECTED_MODES = ("end_to_end", "fusion_head_only", "fusion_module_only")
+EXPECTED_BATCHES = (1, 8)
+
+
+def load_raw_with_duplicate_key_audit(path: Path) -> tuple[dict, list[str]]:
+    duplicate_keys: list[str] = []
+
+    def audit_pairs(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                duplicate_keys.append(str(key))
+            result[key] = value
+        return result
+
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=audit_pairs), duplicate_keys
+
+
+def _is_finite_number(value: Any) -> bool:
+    return isinstance(value, (int, float, np.integer, np.floating)) and math.isfinite(float(value))
+
+
+def validate_raw_schema(raw: dict, duplicate_json_keys: list[str]) -> dict:
+    missing_fields: list[dict] = []
+    duplicate_records: list[dict] = []
+    invalid_values: list[dict] = []
+    warnings: list[str] = []
+
+    def require(mapping: Any, fields: tuple[str, ...], path: str) -> None:
+        if not isinstance(mapping, dict):
+            missing_fields.append({"path": path, "field": "<mapping>", "detail": "expected object"})
+            return
+        for field in fields:
+            if field not in mapping:
+                missing_fields.append({"path": path, "field": field})
+
+    require(
+        raw,
+        ("protocol", "environment", "models", "measurements", "flops", "student_checkpoints"),
+        "raw",
+    )
+    protocol = raw.get("protocol", {})
+    require(protocol, ("warmup", "iterations", "rounds", "batch_sizes", "clip_model"), "raw.protocol")
+    environment = raw.get("environment", {})
+    require(environment, ("timestamp", "pytorch", "pytorch_cuda", "gpu", "precision"), "raw.environment")
+
+    models = raw.get("models", {})
+    require(models, EXPECTED_MODEL_KEYS, "raw.models")
+    model_numeric_fields = (
+        "total_parameters",
+        "trainable_parameters",
+        "frozen_parameters",
+        "clip_parameters",
+        "fusion_head_parameters",
+        "fusion_core_parameters",
+        "fusion_plus_gate_parameters",
+        "gate_parameters",
+        "classifier_parameters",
+        "checkpoint_size_bytes",
+        "clip_checkpoint_size_bytes",
+        "deployment_size_bytes",
+        "heads_executed",
+    )
+    for model_key in EXPECTED_MODEL_KEYS:
+        values = models.get(model_key)
+        require(values, model_numeric_fields + ("checkpoint_paths",), f"raw.models.{model_key}")
+        if not isinstance(values, dict):
+            continue
+        for field in model_numeric_fields:
+            if field not in values:
+                continue
+            value = values[field]
+            if not _is_finite_number(value) or float(value) < 0:
+                invalid_values.append(
+                    {"path": f"raw.models.{model_key}.{field}", "value": repr(value), "rule": "finite >= 0"}
+                )
+        if "checkpoint_paths" in values and not values["checkpoint_paths"]:
+            invalid_values.append(
+                {"path": f"raw.models.{model_key}.checkpoint_paths", "value": repr(values["checkpoint_paths"]), "rule": "non-empty"}
+            )
+
+    measurements = raw.get("measurements", [])
+    if not isinstance(measurements, list) or not measurements:
+        invalid_values.append({"path": "raw.measurements", "value": repr(measurements), "rule": "non-empty list"})
+        measurements = []
+    measurement_required = (
+        "model_key",
+        "mode",
+        "batch_size",
+        "latency_ms_rounds",
+        "latency_ms_mean",
+        "latency_ms_std",
+        "throughput_samples_per_s_rounds",
+        "throughput_samples_per_s_mean",
+        "throughput_samples_per_s_std",
+        "baseline_bytes",
+        "peak_bytes",
+        "incremental_peak_bytes",
+    )
+    seen_measurements: set[tuple] = set()
+    for index, row in enumerate(measurements):
+        path = f"raw.measurements[{index}]"
+        require(row, measurement_required, path)
+        if not isinstance(row, dict):
+            continue
+        key = (row.get("model_key"), row.get("mode"), row.get("batch_size"))
+        if key in seen_measurements:
+            duplicate_records.append({"collection": "measurements", "key": list(key)})
+        seen_measurements.add(key)
+        for field in (
+            "latency_ms_mean",
+            "throughput_samples_per_s_mean",
+            "baseline_bytes",
+            "peak_bytes",
+            "incremental_peak_bytes",
+        ):
+            if field not in row:
+                continue
+            value = row[field]
+            lower_bound = 0.0 if field.endswith("bytes") else np.nextafter(0.0, 1.0)
+            if not _is_finite_number(value) or float(value) < lower_bound:
+                invalid_values.append(
+                    {"path": f"{path}.{field}", "value": repr(value), "rule": f"finite >= {lower_bound}"}
+                )
+        for field in ("latency_ms_std", "throughput_samples_per_s_std"):
+            if field in row and (not _is_finite_number(row[field]) or float(row[field]) < 0):
+                invalid_values.append(
+                    {"path": f"{path}.{field}", "value": repr(row[field]), "rule": "finite >= 0"}
+                )
+        for field in ("latency_ms_rounds", "throughput_samples_per_s_rounds"):
+            values = row.get(field)
+            if not isinstance(values, list) or not values:
+                invalid_values.append({"path": f"{path}.{field}", "value": repr(values), "rule": "non-empty list"})
+            elif any(not _is_finite_number(value) or float(value) <= 0 for value in values):
+                invalid_values.append({"path": f"{path}.{field}", "value": repr(values), "rule": "all finite > 0"})
+
+    expected_measurements = {
+        (model_key, mode, batch)
+        for model_key in EXPECTED_MODEL_KEYS
+        for mode in EXPECTED_MODES
+        for batch in EXPECTED_BATCHES
+    }
+    for key in sorted(expected_measurements - seen_measurements):
+        missing_fields.append({"path": "raw.measurements", "field": list(key), "detail": "missing record"})
+
+    flops = raw.get("flops", [])
+    if not isinstance(flops, list) or not flops:
+        invalid_values.append({"path": "raw.flops", "value": repr(flops), "rule": "non-empty list"})
+        flops = []
+    flops_required = (
+        "model_key",
+        "mode",
+        "flops_per_sample",
+        "macs_per_sample_assuming_2_flops_per_mac",
+        "method",
+    )
+    seen_flops: set[tuple] = set()
+    for index, row in enumerate(flops):
+        path = f"raw.flops[{index}]"
+        require(row, flops_required, path)
+        if not isinstance(row, dict):
+            continue
+        key = (row.get("model_key"), row.get("mode"))
+        if key in seen_flops:
+            duplicate_records.append({"collection": "flops", "key": list(key)})
+        seen_flops.add(key)
+        for field in ("flops_per_sample", "macs_per_sample_assuming_2_flops_per_mac"):
+            if field in row and (not _is_finite_number(row[field]) or float(row[field]) <= 0):
+                invalid_values.append(
+                    {"path": f"{path}.{field}", "value": repr(row[field]), "rule": "finite > 0"}
+                )
+    expected_flops = {(model_key, mode) for model_key in EXPECTED_MODEL_KEYS for mode in EXPECTED_MODES}
+    for key in sorted(expected_flops - seen_flops):
+        missing_fields.append({"path": "raw.flops", "field": list(key), "detail": "missing record"})
+
+    # These are semantic warnings: the raw values are retained for diagnosis, not publication.
+    try:
+        lookup = {(row["model_key"], row["mode"], int(row["batch_size"])): row for row in measurements}
+        single = float(lookup[("teacher_single", "end_to_end", 1)]["latency_ms_mean"])
+        student = float(lookup[("student_shared", "end_to_end", 1)]["latency_ms_mean"])
+        single_head = float(lookup[("teacher_single", "fusion_head_only", 1)]["latency_ms_mean"])
+        student_head = float(lookup[("student_shared", "fusion_head_only", 1)]["latency_ms_mean"])
+        if abs(student - single) > 1.1 * abs(student_head - single_head):
+            warnings.append(
+                "End-to-end latency gap is inconsistent with the head-only gap; mark this run preliminary_invalid_end_to_end_benchmark."
+            )
+        baselines = [
+            float(lookup[(model, "end_to_end", 1)]["baseline_bytes"])
+            for model in EXPECTED_MODEL_KEYS
+        ]
+        if max(baselines) > min(baselines) * 1.2:
+            warnings.append(
+                "GPU baseline memory differs by more than 20% across models; absolute peak memory is not a fair cross-model comparison."
+            )
+    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+        warnings.append("Semantic anomaly checks could not run because required measurement records are incomplete.")
+
+    status = "PASS" if not (missing_fields or duplicate_json_keys or duplicate_records or invalid_values) else "FAIL"
+    return {
+        "status": status,
+        "benchmark_status": "preliminary_invalid_end_to_end_benchmark",
+        "counts": {
+            "models": len(models) if isinstance(models, dict) else 0,
+            "measurements": len(measurements),
+            "flops_records": len(flops),
+        },
+        "missing_fields": missing_fields,
+        "duplicate_json_keys": sorted(set(duplicate_json_keys)),
+        "duplicate_records": duplicate_records,
+        "invalid_values": invalid_values,
+        "warnings": warnings,
+    }
+
+
+def write_schema_reports(report: dict, output_dir: Path) -> None:
+    (output_dir / "schema_check.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    lines = [
+        "# Efficiency raw benchmark schema check",
+        "",
+        f"- Schema status: **{report['status']}**",
+        f"- Benchmark publication status: **{report['benchmark_status']}**",
+        f"- Models: {report['counts']['models']}",
+        f"- Measurement records: {report['counts']['measurements']}",
+        f"- FLOPs records: {report['counts']['flops_records']}",
+        "",
+    ]
+    for title, key in (
+        ("Missing fields or records", "missing_fields"),
+        ("Duplicate JSON fields", "duplicate_json_keys"),
+        ("Duplicate records", "duplicate_records"),
+        ("Invalid numeric or empty values", "invalid_values"),
+        ("Semantic warnings", "warnings"),
+    ):
+        lines.extend([f"## {title}", ""])
+        values = report[key]
+        if values:
+            lines.extend(f"- `{json.dumps(value, ensure_ascii=False)}`" for value in values)
+        else:
+            lines.append("- None")
+        lines.append("")
+    (output_dir / "schema_check.md").write_text("\n".join(lines), encoding="utf-8")
+
+
+def preserve_or_write_csv(frame: pd.DataFrame, path: Path) -> None:
+    """Keep an existing raw-derived CSV byte-for-byte when its data is equivalent."""
+    if path.is_file():
+        try:
+            existing = pd.read_csv(path)
+            pd.testing.assert_frame_equal(
+                existing.reset_index(drop=True),
+                frame.reset_index(drop=True),
+                check_dtype=False,
+                check_exact=False,
+                rtol=1e-12,
+                atol=1e-12,
+            )
+            return
+        except (AssertionError, ValueError, pd.errors.ParserError):
+            recovered = path.with_name(f"{path.stem}_recovered{path.suffix}")
+            frame.to_csv(recovered, index=False)
+            return
+    frame.to_csv(path, index=False)
+
+
+def require_index_labels(frame: pd.DataFrame, labels: list[str], context: str) -> None:
+    missing = [label for label in labels if label not in frame.index]
+    if missing:
+        raise ValueError(
+            f"{context} is missing methods {missing}; available methods are {list(frame.index)}. "
+            "See outputs/efficiency/schema_check.json for the raw schema audit."
+        )
 
 
 def font(size: int):
@@ -189,7 +465,22 @@ def read_performance(root: Path, raw: dict) -> dict:
 def main() -> None:
     args = parse_args()
     root, out = args.project_root.resolve(), args.output_dir.resolve()
-    raw = json.loads((out / "raw_benchmark.json").read_text(encoding="utf-8"))
+    out.mkdir(parents=True, exist_ok=True)
+    raw_path = out / "raw_benchmark.json"
+    if not raw_path.is_file():
+        raise FileNotFoundError(f"Required raw benchmark is missing: {raw_path}")
+    raw, duplicate_json_keys = load_raw_with_duplicate_key_audit(raw_path)
+    schema_report = validate_raw_schema(raw, duplicate_json_keys)
+    write_schema_reports(schema_report, out)
+    if schema_report["status"] != "PASS":
+        raise ValueError(
+            "Efficiency raw benchmark failed schema validation; "
+            f"missing={len(schema_report['missing_fields'])}, "
+            f"duplicate_json_keys={len(schema_report['duplicate_json_keys'])}, "
+            f"duplicate_records={len(schema_report['duplicate_records'])}, "
+            f"invalid_values={len(schema_report['invalid_values'])}. "
+            f"See {out / 'schema_check.json'}."
+        )
     perf = read_performance(root, raw)
 
     final_label = None
@@ -222,7 +513,7 @@ def main() -> None:
         values = raw["models"][model_source[key]]
         parameter_rows.append({"method": labels[key], **{k: v for k, v in values.items() if not isinstance(v, list)}})
     parameter_frame = pd.DataFrame(parameter_rows)
-    parameter_frame.to_csv(out / "model_parameter_breakdown.csv", index=False)
+    preserve_or_write_csv(parameter_frame, out / "model_parameter_breakdown.csv")
 
     flops_lookup = {(row["model_key"], row["mode"]): row for row in raw["flops"]}
     flops_rows = []
@@ -244,7 +535,7 @@ def main() -> None:
             }
         )
     flops_frame = pd.DataFrame(flops_rows)
-    flops_frame.to_csv(out / "flops_macs_report.csv", index=False)
+    preserve_or_write_csv(flops_frame, out / "flops_macs_report.csv")
 
     measurement = {(row["model_key"], row["mode"], int(row["batch_size"])): row for row in raw["measurements"]}
     latency_frames = {}
@@ -270,7 +561,7 @@ def main() -> None:
                 }
             )
         frame = pd.DataFrame(rows)
-        frame.to_csv(out / f"latency_batch{batch}.csv", index=False)
+        preserve_or_write_csv(frame, out / f"latency_batch{batch}.csv")
         latency_frames[batch] = frame.set_index("method")
 
     throughput_rows, memory_rows = [], []
@@ -300,9 +591,9 @@ def main() -> None:
                     }
                 )
     throughput_frame = pd.DataFrame(throughput_rows)
-    throughput_frame.to_csv(out / "throughput.csv", index=False)
+    preserve_or_write_csv(throughput_frame, out / "throughput.csv")
     memory_frame = pd.DataFrame(memory_rows)
-    memory_frame.to_csv(out / "gpu_memory.csv", index=False)
+    preserve_or_write_csv(memory_frame, out / "gpu_memory.csv")
 
     checkpoint_rows = []
     for key in method_keys:
@@ -329,12 +620,21 @@ def main() -> None:
                 "deployment_size_bytes": source_values["clip_checkpoint_size_bytes"] + checkpoint_size,
             }
         )
-    pd.DataFrame(checkpoint_rows).to_csv(out / "checkpoint_sizes.csv", index=False)
+    preserve_or_write_csv(pd.DataFrame(checkpoint_rows), out / "checkpoint_sizes.csv")
 
     param_index = parameter_frame.set_index("method")
     flops_index = flops_frame.set_index("method")
-    tp8 = throughput_frame[(throughput_frame.mode == "end_to_end") & (throughput_frame.batch_size == 8)].set_index("method")
-    mem8 = memory_frame[(memory_frame.mode == "end_to_end") & (memory_frame.batch_size == 8)].set_index("method")
+    # Bracket access is mandatory: ``DataFrame.mode`` resolves to the mode() method,
+    # which previously produced an empty selection and a misleading KeyError.
+    tp8 = throughput_frame[
+        (throughput_frame["mode"] == "end_to_end") & (throughput_frame["batch_size"] == 8)
+    ].set_index("method")
+    mem8 = memory_frame[
+        (memory_frame["mode"] == "end_to_end") & (memory_frame["batch_size"] == 8)
+    ].set_index("method")
+    expected_labels = [labels[key] for key in method_keys]
+    require_index_labels(tp8, expected_labels, "Batch-8 end-to-end throughput table")
+    require_index_labels(mem8, expected_labels, "Batch-8 end-to-end memory table")
     trade_rows = []
     for key in method_keys:
         name = labels[key]
@@ -362,7 +662,7 @@ def main() -> None:
             }
         )
     trade = pd.DataFrame(trade_rows)
-    trade.to_csv(out / "performance_efficiency_tradeoff.csv", index=False)
+    preserve_or_write_csv(trade, out / "performance_efficiency_tradeoff.csv")
 
     trade_index = trade.set_index("Method")
     relative_rows = []
@@ -383,11 +683,11 @@ def main() -> None:
                 }
             )
     relative = pd.DataFrame(relative_rows)
-    relative.to_csv(out / "relative_reduction_rates.csv", index=False)
+    preserve_or_write_csv(relative, out / "relative_reduction_rates.csv")
 
     # Plot source CSVs and 300-DPI figures.
     plot_data = trade[["Method", "Weighted-F1", "Macro-F1", "Params", "FLOPs", "Latency"]].copy()
-    plot_data.to_csv(out / "paper_efficiency_plot_data.csv", index=False)
+    preserve_or_write_csv(plot_data, out / "paper_efficiency_plot_data.csv")
     plots = [
         ("Params", "Weighted-F1", "weighted_f1_vs_parameters.png", "Total parameters", "Weighted-F1"),
         ("Latency", "Macro-F1", "macro_f1_vs_latency.png", "Batch-1 end-to-end latency (ms)", "Macro-F1"),
@@ -400,7 +700,7 @@ def main() -> None:
     cost = trade.set_index("Method")[compare_columns].copy()
     normalized = cost.divide(cost.loc[labels["teacher_single"]], axis=1)
     normalized.insert(0, "Method", normalized.index)
-    normalized.to_csv(out / "teacher_student_efficiency_comparison_data.csv", index=False)
+    preserve_or_write_csv(normalized, out / "teacher_student_efficiency_comparison_data.csv")
     draw_normalized_bars(normalized, compare_columns, out / "teacher_student_efficiency_comparison.png")
 
     student_name = labels["student_logits"]
@@ -421,6 +721,8 @@ def main() -> None:
 
     lines = [
         "# MKAN-Refine 复现教师与 LiteFusion 学生公平效率报告",
+        "",
+        "> **状态：preliminary_invalid_end_to_end_benchmark。** 本报告由已有 raw benchmark 恢复生成；原始端到端路径存在尚未解释的异常，只用于问题排查，不得作为论文最终效率结论。",
         "",
         f"测量时间：{raw['environment']['timestamp']}；GPU：{raw['environment']['gpu']}；PyTorch：{raw['environment']['pytorch']}；CUDA：{raw['environment']['pytorch_cuda']}；精度：FP32。",
         "",
@@ -473,8 +775,10 @@ def main() -> None:
             "",
         ]
     )
-    (out / "efficiency_report.md").write_text("\n".join(lines), encoding="utf-8")
-    print(out / "efficiency_report.md")
+    recovered_text = "\n".join(lines)
+    (out / "efficiency_report.md").write_text(recovered_text, encoding="utf-8")
+    (out / "efficiency_report_raw_recovered.md").write_text(recovered_text, encoding="utf-8")
+    print(out / "efficiency_report_raw_recovered.md")
 
 
 if __name__ == "__main__":

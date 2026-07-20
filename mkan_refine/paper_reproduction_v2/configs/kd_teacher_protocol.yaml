@@ -1,0 +1,14 @@
+# This protocol is intentionally inactive until paper-protocol architecture search
+# and all three paper-protocol seeds are complete. It must never reuse the paper
+# split checkpoints directly.
+protocol: kd_teacher_frozen_clip
+status: BLOCKED_UNTIL_PAPER_PROTOCOL_COMPLETE
+project_root: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI
+feature_cache_root: /dev/shm/lpc_kdclip_tmp/mkan_kd_teacher_v2
+output_dir: outputs/mkan_kd_teacher_v2
+expected_split_counts:
+  train: 6090
+  val: 995
+  test: 950
+test_used_for_selection: false
+

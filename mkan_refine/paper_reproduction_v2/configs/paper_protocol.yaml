@@ -1,0 +1,43 @@
+protocol: paper_frozen_clip
+project_root: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI
+data_dir: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/mkan_refine/data
+image_root: /home/lpc/projects/KD-LiteFusion-CLIP_FULL_RUN_MINI/data/CrisisMMD_v2.0
+clip_checkpoint: /home/lpc/.cache/clip/ViT-L-14-336px.pt
+feature_cache_root: /dev/shm/lpc_kdclip_tmp/mkan_paper_protocol_v2
+output_dir: outputs/mkan_paper_protocol_v2/baseline_frozen_clip
+
+model:
+  classifier_hidden: 512
+  dropout: 0.3
+  share_attention_scorer: true
+  spline:
+    grid_size: 5
+    spline_order: 3
+    grid_range: [-1.0, 1.0]
+    grid_eps: 0.02
+    normalize_input: true
+    scale_noise: 0.1
+    scale_base: 1.0
+    scale_spline: 1.0
+
+training:
+  epochs: 30
+  batch_size: 32
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  optimizer: AdamW
+  scheduler: cosine
+  warmup_epochs: 0
+  ema_decay: 0.999
+  label_smoothing: 0.0
+  spline_regularization: 0.0
+  gradient_clip_norm: 0.0
+  gradient_check_interval: 50
+  grid_update: none
+  resume: true
+
+selection:
+  primary: validation_weighted_f1
+  secondary: validation_accuracy
+  tertiary: validation_macro_f1
+  test_used_for_selection: false

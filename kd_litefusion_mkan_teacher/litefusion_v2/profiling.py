@@ -76,6 +76,68 @@ def benchmark_callable(
     }
 
 
+def benchmark_callables_interleaved(
+    name: str,
+    mode: str,
+    batch_size: int,
+    functions: Mapping[str, Callable[[], Any]],
+    device: torch.device,
+    settings: BenchmarkSettings,
+) -> List[Dict[str, Any]]:
+    """Benchmark equivalent candidates round-robin to reduce changing-load bias."""
+    settings.validate()
+    if not functions:
+        raise ValueError("At least one benchmark callable is required")
+    for _ in range(settings.warmup):
+        for function in functions.values():
+            function()
+            synchronize(device)
+
+    samples_by_candidate: Dict[str, List[float]] = {
+        candidate: [] for candidate in functions
+    }
+    peak_by_candidate = {candidate: 0 for candidate in functions}
+    for _ in range(settings.repeats):
+        for _ in range(settings.iterations):
+            for candidate, function in functions.items():
+                if device.type == "cuda":
+                    torch.cuda.reset_peak_memory_stats(device)
+                synchronize(device)
+                started = time.perf_counter_ns()
+                function()
+                synchronize(device)
+                samples_by_candidate[candidate].append(
+                    (time.perf_counter_ns() - started) / 1_000_000.0
+                )
+                if device.type == "cuda":
+                    peak_by_candidate[candidate] = max(
+                        peak_by_candidate[candidate],
+                        int(torch.cuda.max_memory_allocated(device)),
+                    )
+
+    rows: List[Dict[str, Any]] = []
+    for candidate, samples_ms in samples_by_candidate.items():
+        ordered = sorted(samples_ms)
+        rows.append(
+            {
+                "name": name,
+                "mode": mode,
+                "batch_size": int(batch_size),
+                "dtype": "fp32",
+                "warmup": settings.warmup,
+                "iterations": settings.iterations,
+                "repeats": settings.repeats,
+                "mean_ms": statistics.fmean(samples_ms),
+                "std_ms": statistics.pstdev(samples_ms),
+                "p50_ms": ordered[int(0.50 * (len(ordered) - 1))],
+                "p95_ms": ordered[int(0.95 * (len(ordered) - 1))],
+                "peak_gpu_memory_bytes": peak_by_candidate[candidate],
+                "candidate": candidate,
+            }
+        )
+    return rows
+
+
 def count_parameters(module_or_parameters: Any) -> int:
     parameters = module_or_parameters.parameters() if isinstance(module_or_parameters, nn.Module) else module_or_parameters
     return sum(parameter.numel() for parameter in parameters)

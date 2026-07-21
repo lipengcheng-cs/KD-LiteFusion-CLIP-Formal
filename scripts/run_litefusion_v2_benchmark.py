@@ -3,7 +3,6 @@
 
 import argparse
 import json
-import os
 import shlex
 import subprocess
 import sys
@@ -26,7 +25,7 @@ from kd_litefusion_mkan_teacher.litefusion_v2 import (
 )
 from kd_litefusion_mkan_teacher.litefusion_v2.profiling import (
     BenchmarkSettings,
-    benchmark_modes,
+    benchmark_callables_interleaved,
     parameter_breakdown,
     static_head_macs,
     write_profiling_outputs,
@@ -135,20 +134,21 @@ def prepare_shared_inputs(
     )
 
 
-def add_static_metadata(
+def add_interleaved_static_metadata(
     rows: Sequence[Mapping[str, object]],
-    candidate: str,
-    params: Mapping[str, int],
-    macs: Mapping[str, int],
+    params_by_candidate: Mapping[str, Mapping[str, int]],
+    macs_by_candidate: Mapping[str, Mapping[str, int]],
 ) -> List[Dict[str, object]]:
     enriched: List[Dict[str, object]] = []
     for original in rows:
         row = dict(original)
+        candidate = str(row["candidate"])
         name = str(row["name"])
         section = name if name in {"fusion", "gate", "classifier"} else "full_head"
+        params = params_by_candidate[candidate]
+        macs = macs_by_candidate[candidate]
         row.update(
             {
-                "candidate": candidate,
                 "head_params": int(params["full_head"]),
                 "head_macs": int(macs["full_head"]),
                 "component_params": int(params[section]),
@@ -157,6 +157,144 @@ def add_static_metadata(
         )
         enriched.append(row)
     return enriched
+
+
+def benchmark_models_interleaved(
+    models: Mapping[str, LiteFusionV2Model],
+    images_by_batch: Mapping[int, torch.Tensor],
+    tokens_by_batch: Mapping[int, torch.Tensor],
+    raw_samples_by_batch: Mapping[int, Sequence],
+    device: torch.device,
+    settings: BenchmarkSettings,
+) -> List[Dict[str, object]]:
+    import clip
+
+    rows: List[Dict[str, object]] = []
+    first_model = next(iter(models.values()))
+    with torch.inference_mode():
+        for batch_size in settings.batch_sizes:
+            images = images_by_batch[batch_size]
+            tokens = tokens_by_batch[batch_size]
+            image_feature, text_feature = first_model.encode_clip(images, tokens)
+            fusion_features = {
+                candidate: model.fusion(image_feature, text_feature)
+                for candidate, model in models.items()
+            }
+            gates = {
+                candidate: model.gate(image_feature, text_feature, fusion_features[candidate])
+                for candidate, model in models.items()
+            }
+            final_features = {
+                candidate: torch.nn.functional.normalize(
+                    fusion_features[candidate]
+                    + gates[candidate] * text_feature
+                    + (1.0 - gates[candidate]) * image_feature,
+                    dim=-1,
+                )
+                for candidate in models
+            }
+
+            def deployment_function(model, samples):
+                def call():
+                    deployment_images = torch.stack(
+                        [model.preprocess(image.convert("RGB")) for image, _ in samples]
+                    ).to(device)
+                    deployment_tokens = clip.tokenize(
+                        [text for _, text in samples], truncate=True
+                    ).to(device)
+                    return model(deployment_images, deployment_tokens)
+
+                return call
+
+            groups = [
+                (
+                    "full_model",
+                    "head_only",
+                    {
+                        candidate: (
+                            lambda model=model: model.forward_head(image_feature, text_feature)
+                        )
+                        for candidate, model in models.items()
+                    },
+                ),
+                (
+                    "full_model",
+                    "gpu_tensor_end_to_end",
+                    {
+                        candidate: (lambda model=model: model(images, tokens))
+                        for candidate, model in models.items()
+                    },
+                ),
+                (
+                    "full_model",
+                    "deployment_end_to_end",
+                    {
+                        candidate: deployment_function(
+                            model, raw_samples_by_batch[batch_size]
+                        )
+                        for candidate, model in models.items()
+                    },
+                ),
+                (
+                    "clip_only",
+                    "component",
+                    {
+                        candidate: (lambda model=model: model.encode_clip(images, tokens))
+                        for candidate, model in models.items()
+                    },
+                ),
+                (
+                    "fusion",
+                    "component",
+                    {
+                        candidate: (
+                            lambda model=model: model.fusion(image_feature, text_feature)
+                        )
+                        for candidate, model in models.items()
+                    },
+                ),
+                (
+                    "gate",
+                    "component",
+                    {
+                        candidate: (
+                            lambda candidate=candidate, model=model: model.gate(
+                                image_feature, text_feature, fusion_features[candidate]
+                            )
+                        )
+                        for candidate, model in models.items()
+                    },
+                ),
+                (
+                    "classifier",
+                    "component",
+                    {
+                        candidate: (
+                            lambda candidate=candidate, model=model: model.classifier(
+                                final_features[candidate]
+                            )
+                        )
+                        for candidate, model in models.items()
+                    },
+                ),
+                (
+                    "full_head",
+                    "component",
+                    {
+                        candidate: (
+                            lambda model=model: model.forward_head(image_feature, text_feature)
+                        )
+                        for candidate, model in models.items()
+                    },
+                ),
+            ]
+            for name, mode, functions in groups:
+                rows.extend(
+                    benchmark_callables_interleaved(
+                        name, mode, batch_size, functions, device, settings
+                    )
+                )
+    return rows
 
 
 def fairness_report(rows: Sequence[Mapping[str, object]]) -> Dict[str, object]:
@@ -272,31 +410,45 @@ def main() -> None:
     torch.set_grad_enabled(False)
     device = torch.device("cuda:0")
     raw_samples = load_raw_samples(args.csv_path, args.image_root)
-    shared_inputs = None
-    all_rows: List[Dict[str, object]] = []
+    models: Dict[str, LiteFusionV2Model] = {}
+    params_by_candidate: Dict[str, Dict[str, int]] = {}
+    macs_by_candidate: Dict[str, Dict[str, int]] = {}
+    shared_clip = None
+    shared_preprocess = None
     for candidate in args.candidates:
         config = load_config(str(Path(args.config_dir) / f"{candidate}.yaml"))
         if config.name != candidate or config.interaction_rank != 32:
             raise ValueError(f"Invalid formal candidate config: {config.to_dict()}")
-        model = LiteFusionV2Model(config, device=device, load_clip=True).to(device).eval()
+        model = LiteFusionV2Model(
+            config, device=device, load_clip=(shared_clip is None)
+        ).to(device).eval()
+        if shared_clip is None:
+            shared_clip = model.clip
+            shared_preprocess = model.preprocess
+        else:
+            model.clip = shared_clip
+            model.preprocess = shared_preprocess
         if model.clip.training:
             raise AssertionError("Frozen CLIP must remain in eval mode")
-        if shared_inputs is None:
-            shared_inputs = prepare_shared_inputs(model, raw_samples, device)
-        images_by_batch, tokens_by_batch, raw_by_batch = shared_inputs
-        params = parameter_breakdown(model)
-        macs = static_head_macs(model, batch_size=1, device=device)
-        rows = benchmark_modes(
-            model,
-            images_by_batch,
-            tokens_by_batch,
-            raw_by_batch,
-            device,
-            settings,
+        models[candidate] = model
+        params_by_candidate[candidate] = parameter_breakdown(model)
+        macs_by_candidate[candidate] = static_head_macs(
+            model, batch_size=1, device=device
         )
-        all_rows.extend(add_static_metadata(rows, candidate, params, macs))
-        del model
-        torch.cuda.empty_cache()
+    images_by_batch, tokens_by_batch, raw_by_batch = prepare_shared_inputs(
+        next(iter(models.values())), raw_samples, device
+    )
+    rows = benchmark_models_interleaved(
+        models,
+        images_by_batch,
+        tokens_by_batch,
+        raw_by_batch,
+        device,
+        settings,
+    )
+    all_rows = add_interleaved_static_metadata(
+        rows, params_by_candidate, macs_by_candidate
+    )
 
     fairness = fairness_report(all_rows)
     environment = {
@@ -317,6 +469,8 @@ def main() -> None:
         "csv_path": str(Path(args.csv_path).resolve()),
         "image_root": str(Path(args.image_root).resolve()),
         "candidates": list(args.candidates),
+        "timing_order": "candidate_round_robin_interleaved",
+        "shared_frozen_clip_instance": True,
         "fairness": fairness,
     }
     write_profiling_outputs(

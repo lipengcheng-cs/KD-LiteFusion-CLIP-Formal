@@ -82,6 +82,11 @@ def validate_protocol(args: argparse.Namespace) -> None:
 def load_benchmark_summary(path: str, candidates: Sequence[str]) -> Dict[str, Dict]:
     with open(path, "r", encoding="utf-8") as handle:
         payload = json.load(handle)
+    if not isinstance(payload, dict):
+        raise ValueError(f"Benchmark JSON must include metadata and results: {path}")
+    fairness = payload.get("metadata", {}).get("fairness", {})
+    if fairness.get("passed") is not True:
+        raise ValueError("Benchmark fairness check did not pass; screening is blocked")
     rows = payload.get("results", payload) if isinstance(payload, dict) else payload
     if not isinstance(rows, list):
         raise ValueError(f"Invalid benchmark results payload: {path}")

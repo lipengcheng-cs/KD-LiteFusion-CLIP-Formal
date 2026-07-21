@@ -29,8 +29,6 @@ from kd_litefusion_mkan_teacher.data import (
 )
 from kd_litefusion_mkan_teacher.litefusion_v2 import CANDIDATE_NAMES, LiteFusionV2Model, load_config
 from kd_litefusion_mkan_teacher.litefusion_v2.profiling import (
-    BenchmarkSettings,
-    benchmark_callable,
     parameter_breakdown,
     static_head_macs,
 )
@@ -41,20 +39,31 @@ from kd_litefusion_mkan_teacher.utils import atomic_torch_save, move_to_device, 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config-dir", default="configs/litefusion_v2")
-    parser.add_argument("--csv-path", default="data/clean/task2_clean_consistent.csv")
-    parser.add_argument("--image-root", default="data/CrisisMMD_v2.0")
-    parser.add_argument("--output-dir", default="outputs/litefusion_v2")
+    parser.add_argument(
+        "--csv-path",
+        default=str(PROJECT_ROOT / "data/clean/task2_clean_consistent.csv"),
+    )
+    parser.add_argument(
+        "--image-root",
+        default=str(PROJECT_ROOT / "data/CrisisMMD_v2.0"),
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(PROJECT_ROOT / "outputs/litefusion_v2/screening_seed3407_4ep"),
+    )
+    parser.add_argument(
+        "--benchmark-results",
+        default=str(PROJECT_ROOT / "outputs/litefusion_v2/benchmark_fp32/benchmark_results.json"),
+        help="Completed formal FP32 benchmark JSON. Screening reuses its batch-1 head metrics.",
+    )
     parser.add_argument("--candidates", nargs="+", default=list(CANDIDATE_NAMES))
     parser.add_argument("--seed", type=int, default=3407)
     parser.add_argument("--epochs", type=int, default=4)
     parser.add_argument("--batch-size", type=int, default=8)
-    parser.add_argument("--num-workers", type=int, default=4)
+    parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--weight-decay", type=float, default=0.01)
     parser.add_argument("--label-smoothing", type=float, default=0.05)
-    parser.add_argument("--benchmark-warmup", type=int, default=50)
-    parser.add_argument("--benchmark-iterations", type=int, default=200)
-    parser.add_argument("--benchmark-repeats", type=int, default=5)
     return parser.parse_args()
 
 
@@ -66,11 +75,29 @@ def validate_protocol(args: argparse.Namespace) -> None:
     unknown = sorted(set(args.candidates) - set(CANDIDATE_NAMES))
     if unknown:
         raise ValueError(f"Unknown candidates: {unknown}")
-    BenchmarkSettings(
-        warmup=args.benchmark_warmup,
-        iterations=args.benchmark_iterations,
-        repeats=args.benchmark_repeats,
-    ).validate()
+    if args.batch_size != 8 or args.num_workers != 0:
+        raise ValueError("Formal screening requires batch_size=8 and num_workers=0")
+
+
+def load_benchmark_summary(path: str, candidates: Sequence[str]) -> Dict[str, Dict]:
+    with open(path, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    rows = payload.get("results", payload) if isinstance(payload, dict) else payload
+    if not isinstance(rows, list):
+        raise ValueError(f"Invalid benchmark results payload: {path}")
+    summary: Dict[str, Dict] = {}
+    for row in rows:
+        if (
+            row.get("candidate") in candidates
+            and row.get("mode") == "head_only"
+            and int(row.get("batch_size", -1)) == 1
+            and row.get("name") in {"full_model", "full_head"}
+        ):
+            summary[row["candidate"]] = dict(row)
+    missing = sorted(set(candidates) - set(summary))
+    if missing:
+        raise ValueError(f"Formal batch-1 head benchmark is missing candidates: {missing}")
+    return summary
 
 
 def git_commit() -> str:
@@ -166,7 +193,12 @@ def save_validation_artifacts(
     )
 
 
-def train_candidate(args: argparse.Namespace, candidate: str, device: torch.device) -> Dict:
+def train_candidate(
+    args: argparse.Namespace,
+    candidate: str,
+    device: torch.device,
+    benchmark: Mapping[str, object],
+) -> Dict:
     config_path = Path(args.config_dir) / f"{candidate}.yaml"
     config = load_config(str(config_path))
     if config.name != candidate or config.interaction_rank != 32:
@@ -211,6 +243,7 @@ def train_candidate(args: argparse.Namespace, candidate: str, device: torch.devi
     history: List[Dict] = []
     best_weighted = (-1.0, -1.0)
     best_macro = (-1.0, -1.0)
+    best_epoch = None
     best_validation = None
     best_predictions = None
     for epoch in range(1, args.epochs + 1):
@@ -257,6 +290,7 @@ def train_candidate(args: argparse.Namespace, candidate: str, device: torch.devi
         macro_key = (validation_metrics["macro_f1"], validation_metrics["weighted_f1"])
         if weighted_key > best_weighted:
             best_weighted = weighted_key
+            best_epoch = epoch
             best_validation = dict(validation_metrics)
             best_predictions = validation_predictions.copy()
             atomic_torch_save(payload, str(output_dir / "best_weighted_f1.pt"))
@@ -265,47 +299,38 @@ def train_candidate(args: argparse.Namespace, candidate: str, device: torch.devi
             atomic_torch_save(payload, str(output_dir / "best_macro_f1.pt"))
         atomic_torch_save(payload, str(output_dir / "last.pt"))
 
-    if best_validation is None or best_predictions is None:
+    if best_validation is None or best_predictions is None or best_epoch is None:
         raise RuntimeError("No validation result was produced")
     save_validation_artifacts(output_dir, best_validation, best_predictions)
 
     params = parameter_breakdown(model)
     macs = static_head_macs(model, batch_size=1, device=device)
-    random_image = torch.randn(1, config.feature_dim, device=device)
-    random_text = torch.randn(1, config.feature_dim, device=device)
-    benchmark = benchmark_callable(
-        name="full_head",
-        mode="head_only",
-        batch_size=1,
-        function=lambda: model.forward_head(random_image, random_text),
-        device=device,
-        settings=BenchmarkSettings(
-            warmup=args.benchmark_warmup,
-            iterations=args.benchmark_iterations,
-            repeats=args.benchmark_repeats,
-        ),
-    )
-    return {
+    if int(benchmark["head_params"]) != params["full_head"]:
+        raise ValueError(f"Benchmark parameter mismatch for {candidate}")
+    if int(benchmark["head_macs"]) != macs["full_head"]:
+        raise ValueError(f"Benchmark MAC mismatch for {candidate}")
+    result = {
         "candidate": candidate,
+        "best_epoch": int(best_epoch),
         "val_accuracy": best_validation["accuracy"],
         "val_weighted_f1": best_validation["weighted_f1"],
         "val_macro_f1": best_validation["macro_f1"],
+        "val_precision": best_validation["precision"],
+        "val_recall": best_validation["recall"],
         "head_params": params["full_head"],
         "head_macs": macs["full_head"],
-        "head_latency_mean_ms_batch1": benchmark["mean_ms"],
-        "head_latency_p95_ms_batch1": benchmark["p95_ms"],
-        "peak_gpu_memory_bytes": benchmark["peak_gpu_memory_bytes"],
+        "head_latency_batch1_mean_ms": float(benchmark["mean_ms"]),
+        "head_latency_batch1_std_ms": float(benchmark["std_ms"]),
+        "peak_memory_mb": float(benchmark["peak_gpu_memory_bytes"]) / (1024.0 * 1024.0),
+        "status": "completed",
     }
+    atomic_json_save(result, output_dir / "screening_summary.json")
+    return result
 
 
 def mark_pareto(frame: pd.DataFrame) -> pd.Series:
-    maximize = ("val_accuracy", "val_weighted_f1", "val_macro_f1")
-    minimize = (
-        "head_params",
-        "head_macs",
-        "head_latency_mean_ms_batch1",
-        "peak_gpu_memory_bytes",
-    )
+    maximize = ("val_weighted_f1",)
+    minimize = ("head_params", "head_latency_batch1_mean_ms")
     flags = []
     for index, row in frame.iterrows():
         dominated = False
@@ -331,9 +356,31 @@ def main() -> None:
     set_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    rows = [train_candidate(args, candidate, device) for candidate in args.candidates]
+    benchmark = load_benchmark_summary(args.benchmark_results, args.candidates)
+    rows = [
+        train_candidate(args, candidate, device, benchmark[candidate])
+        for candidate in args.candidates
+    ]
     frame = pd.DataFrame(rows)
-    frame["pareto"] = mark_pareto(frame)
+    pareto = mark_pareto(frame)
+    frame.loc[pareto, "status"] = "pareto"
+    frame.loc[~pareto, "status"] = "completed_dominated"
+    columns = [
+        "candidate",
+        "best_epoch",
+        "val_accuracy",
+        "val_weighted_f1",
+        "val_macro_f1",
+        "val_precision",
+        "val_recall",
+        "head_params",
+        "head_macs",
+        "head_latency_batch1_mean_ms",
+        "head_latency_batch1_std_ms",
+        "peak_memory_mb",
+        "status",
+    ]
+    frame = frame[columns]
     frame.to_csv(Path(args.output_dir) / "validation_pareto.csv", index=False)
     print(frame.to_string(index=False))
 

@@ -1,0 +1,13 @@
+model:
+  name: v2_b_balanced
+  interaction_rank: 32
+  residual_rank: 64
+  gate_type: bottleneck
+  gate_hidden: 128
+  gate_groups: 1
+  classifier_hidden: 128
+  dropout: 0.2
+  feature_dim: 768
+  num_classes: 5
+  clip_model_path: /home/lpc/.cache/clip/ViT-L-14-336px.pt
+  freeze_clip: true

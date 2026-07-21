@@ -1,0 +1,13 @@
+model:
+  name: v2_g_grouped
+  interaction_rank: 32
+  residual_rank: 64
+  gate_type: grouped
+  gate_hidden: 64
+  gate_groups: 32
+  classifier_hidden: 128
+  dropout: 0.2
+  feature_dim: 768
+  num_classes: 5
+  clip_model_path: /home/lpc/.cache/clip/ViT-L-14-336px.pt
+  freeze_clip: true

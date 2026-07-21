@@ -254,9 +254,9 @@ def main():
     )
     if "train" not in loaders:
         raise ValueError("CSV must contain split == train")
-    val_loader = loaders.get("val", loaders.get("test"))
+    val_loader = loaders.get("val")
     if val_loader is None:
-        raise ValueError("CSV must contain split == val or split == test")
+        raise ValueError("CSV must contain split == val; fallback to test is forbidden")
 
     optimizer = AdamW((p for p in model.parameters() if p.requires_grad), lr=args.lr, weight_decay=args.weight_decay)
     class_weight = None

@@ -86,7 +86,10 @@ def adapt_student_gate(student_gate: torch.Tensor, teacher_gate: torch.Tensor) -
 
 def relation_kd_loss(student_feature: torch.Tensor, teacher_feature: torch.Tensor) -> torch.Tensor:
     if student_feature.shape[-1] != teacher_feature.shape[-1]:
-        return student_feature.new_tensor(0.0)
+        raise ValueError(
+            "Student/teacher relation feature dimension mismatch: "
+            f"{student_feature.shape[-1]} vs {teacher_feature.shape[-1]}"
+        )
     student_norm = F.normalize(student_feature, dim=-1)
     teacher_norm = F.normalize(teacher_feature, dim=-1)
     student_relation = student_norm @ student_norm.t()
@@ -100,20 +103,26 @@ def prototype_kd_loss(
     teacher_prototype: Optional[torch.Tensor],
 ) -> torch.Tensor:
     if teacher_prototype is None:
-        return student_feature.new_tensor(0.0)
+        raise ValueError("Prototype KD is enabled but teacher_prototype is missing")
     teacher_prototype = teacher_prototype.to(student_feature.device)
     if student_feature.shape[-1] != teacher_prototype.shape[-1]:
-        return student_feature.new_tensor(0.0)
+        raise ValueError(
+            "Student/teacher prototype dimension mismatch: "
+            f"{student_feature.shape[-1]} vs {teacher_prototype.shape[-1]}"
+        )
     losses = []
     for cls_id in labels.unique():
         mask = labels == cls_id
         cls_index = int(cls_id.item())
         if cls_index >= teacher_prototype.shape[0]:
-            continue
+            raise ValueError(
+                f"Teacher prototypes contain {teacher_prototype.shape[0]} classes, "
+                f"label id {cls_index} was requested"
+            )
         student_proto = student_feature[mask].mean(dim=0)
         losses.append(F.mse_loss(student_proto, teacher_prototype[cls_index]))
     if not losses:
-        return student_feature.new_tensor(0.0)
+        raise ValueError("Prototype KD is enabled but the batch contains no labels")
     return torch.stack(losses).mean()
 
 
@@ -138,7 +147,12 @@ def compute_total_loss(
         )
     }
     sample_weight = None
-    if confidence_weighted_kd and "teacher_logits" in batch:
+    if confidence_weighted_kd:
+        if "teacher_logits" not in batch:
+            sample_id = batch.get("sample_id", ["UNKNOWN"])[0]
+            raise ValueError(
+                f"confidence_weighted_kd requires teacher_logits for sample_id: {sample_id}"
+            )
         sample_weight = teacher_confidence(batch["teacher_logits"]).detach()
 
     if weights.get("logits", 0.0) > 0:
@@ -151,14 +165,33 @@ def compute_total_loss(
             sample_id = batch.get("sample_id", ["UNKNOWN"])[0]
             raise ValueError(f"Missing teacher feature for sample_id: {sample_id}")
         losses["feature_kd"] = feature_kd_loss(outputs["feature"], batch["teacher_feature"], sample_weight)
-    if weights.get("gate", 0.0) > 0 and "teacher_gate" in batch:
+    if weights.get("gate", 0.0) > 0:
+        if "teacher_gate" not in batch:
+            sample_id = batch.get("sample_id", ["UNKNOWN"])[0]
+            raise ValueError(f"Missing teacher gate for sample_id: {sample_id}")
         student_gate = adapt_student_gate(outputs["gate"], batch["teacher_gate"])
-        losses["gate_kd"] = F.mse_loss(student_gate, batch["teacher_gate"]) if student_gate.shape == batch["teacher_gate"].shape else logits.new_tensor(0.0)
-    if weights.get("relation", 0.0) > 0 and "teacher_feature" in batch:
+        if student_gate.shape != batch["teacher_gate"].shape:
+            raise ValueError(
+                f"Student/teacher gate shape mismatch: {tuple(student_gate.shape)} vs "
+                f"{tuple(batch['teacher_gate'].shape)}"
+            )
+        losses["gate_kd"] = F.mse_loss(student_gate, batch["teacher_gate"])
+    if weights.get("relation", 0.0) > 0:
+        if "teacher_feature" not in batch:
+            sample_id = batch.get("sample_id", ["UNKNOWN"])[0]
+            raise ValueError(f"Missing teacher relation feature for sample_id: {sample_id}")
         losses["relation_kd"] = relation_kd_loss(outputs["feature"], batch["teacher_feature"])
     if weights.get("prototype", 0.0) > 0:
-        if "teacher_prototype" in batch and batch["teacher_prototype"].dim() == outputs["feature"].dim():
-            losses["prototype_kd"] = F.mse_loss(outputs["feature"], batch["teacher_prototype"])
+        if "teacher_prototype" in batch:
+            if batch["teacher_prototype"].shape != outputs["feature"].shape:
+                raise ValueError(
+                    "Student/teacher per-sample prototype shape mismatch: "
+                    f"{tuple(outputs['feature'].shape)} vs "
+                    f"{tuple(batch['teacher_prototype'].shape)}"
+                )
+            losses["prototype_kd"] = F.mse_loss(
+                outputs["feature"], batch["teacher_prototype"].to(outputs["feature"].device)
+            )
         else:
             losses["prototype_kd"] = prototype_kd_loss(outputs["feature"], labels, teacher_global_prototypes)
 

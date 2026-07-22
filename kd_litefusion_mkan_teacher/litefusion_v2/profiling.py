@@ -162,14 +162,21 @@ def static_head_macs(
     handles = []
 
     def register(module: nn.Module, section: str) -> None:
-        def hook(layer: nn.Module, inputs: Tuple[torch.Tensor, ...], output: torch.Tensor) -> None:
+        def linear_hook(layer: nn.Module, inputs: Tuple[torch.Tensor, ...], output: torch.Tensor) -> None:
             input_tensor = inputs[0]
             vectors = input_tensor.numel() // input_tensor.shape[-1]
             totals[section] += int(vectors * layer.in_features * layer.out_features)
 
+        def conv1d_hook(layer: nn.Module, inputs: Tuple[torch.Tensor, ...], output: torch.Tensor) -> None:
+            kernel = int(layer.kernel_size[0])
+            inputs_per_group = int(layer.in_channels // layer.groups)
+            totals[section] += int(output.numel() * inputs_per_group * kernel)
+
         for layer in module.modules():
             if isinstance(layer, nn.Linear):
-                handles.append(layer.register_forward_hook(hook))
+                handles.append(layer.register_forward_hook(linear_hook))
+            elif isinstance(layer, nn.Conv1d):
+                handles.append(layer.register_forward_hook(conv1d_hook))
 
     register(model.fusion, "fusion")
     register(model.gate, "gate")

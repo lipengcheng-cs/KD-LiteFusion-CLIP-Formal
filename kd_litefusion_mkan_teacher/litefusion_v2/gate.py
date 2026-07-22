@@ -1,7 +1,6 @@
-from typing import List
-
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 def gate_evidence(
@@ -48,18 +47,24 @@ class GroupedReliabilityGate(nn.Module):
         self.groups = int(groups)
         self.group_dim = feature_dim // groups
         self.group_hidden = hidden // groups
-        self.group_nets = nn.ModuleList(
-            [
-                nn.Sequential(
-                    nn.Linear(self.group_dim * 4, self.group_hidden),
-                    nn.GELU(),
-                    nn.LayerNorm(self.group_hidden),
-                    nn.Dropout(dropout),
-                    nn.Linear(self.group_hidden, self.group_dim),
-                    nn.Sigmoid(),
-                )
-                for _ in range(groups)
-            ]
+        # A grouped 1x1 convolution is exactly a bank of independent linear
+        # layers. It preserves group-specific dynamic reliability while
+        # replacing 32 Python-loop iterations and dozens of tiny CUDA kernels
+        # with two vectorized grouped kernels.
+        self.input_projection = nn.Conv1d(
+            in_channels=feature_dim * 4,
+            out_channels=hidden,
+            kernel_size=1,
+            groups=groups,
+        )
+        self.norm_weight = nn.Parameter(torch.ones(groups, self.group_hidden))
+        self.norm_bias = nn.Parameter(torch.zeros(groups, self.group_hidden))
+        self.dropout = nn.Dropout(dropout)
+        self.output_projection = nn.Conv1d(
+            in_channels=hidden,
+            out_channels=feature_dim,
+            kernel_size=1,
+            groups=groups,
         )
 
     def forward(
@@ -70,19 +75,23 @@ class GroupedReliabilityGate(nn.Module):
     ) -> torch.Tensor:
         if image_feature.ndim != 2 or image_feature.shape[-1] != self.feature_dim:
             raise ValueError(f"Expected [batch, {self.feature_dim}] image_feature")
-        image_groups = image_feature.split(self.group_dim, dim=-1)
-        text_groups = text_feature.split(self.group_dim, dim=-1)
-        fusion_groups = fusion_feature.split(self.group_dim, dim=-1)
-        outputs: List[torch.Tensor] = []
-        for index, net in enumerate(self.group_nets):
-            image_group = image_groups[index]
-            text_group = text_groups[index]
-            evidence = torch.cat(
-                (image_group, text_group, torch.abs(image_group - text_group), fusion_groups[index]),
-                dim=-1,
-            )
-            outputs.append(net(evidence))
-        return torch.cat(outputs, dim=-1)
+        if image_feature.shape != text_feature.shape or image_feature.shape != fusion_feature.shape:
+            raise ValueError("image_feature, text_feature, and fusion_feature must have identical shapes")
+        batch_size = image_feature.shape[0]
+        image_groups = image_feature.reshape(batch_size, self.groups, self.group_dim)
+        text_groups = text_feature.reshape(batch_size, self.groups, self.group_dim)
+        fusion_groups = fusion_feature.reshape(batch_size, self.groups, self.group_dim)
+        evidence = torch.stack(
+            (image_groups, text_groups, torch.abs(image_groups - text_groups), fusion_groups),
+            dim=2,
+        ).reshape(batch_size, self.groups, self.group_dim * 4)
+        evidence = evidence.reshape(batch_size, self.feature_dim * 4, 1)
+        hidden = self.input_projection(evidence).reshape(batch_size, self.groups, self.group_hidden)
+        hidden = F.gelu(hidden)
+        hidden = F.layer_norm(hidden, (self.group_hidden,))
+        hidden = hidden * self.norm_weight.unsqueeze(0) + self.norm_bias.unsqueeze(0)
+        hidden = self.dropout(hidden).reshape(batch_size, -1, 1)
+        return torch.sigmoid(self.output_projection(hidden).reshape(batch_size, self.feature_dim))
 
 
 def build_gate(gate_type: str, feature_dim: int, hidden: int, groups: int, dropout: float) -> nn.Module:
